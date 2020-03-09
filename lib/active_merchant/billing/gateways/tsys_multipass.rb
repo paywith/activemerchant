@@ -39,8 +39,12 @@ module ActiveMerchant #:nodoc:
       end
 
       def authorize(money, credit_card, options = {})
+        req_body = { "Auth": request_params(options) }.to_json
+        puts "*****************************************"
+        puts req_body
+        puts "*****************************************"
         commit(
-          request_body: { "Auth": request_params(options) }.to_json
+          request_body: req_body 
         )
       end
 
@@ -89,17 +93,17 @@ module ActiveMerchant #:nodoc:
           Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |https|
             request      = Net::HTTP::Post.new(uri, {'Content-Type' => CONTENT_TYPE })
             request.body = request_body
-            https.set_debug_output($stdout)
             # Making the call
             https.request(request)
           end
         
         # Parsing the response body
         @parsed_body = parse(response.body)
-        
-        # ONLY FOR TESTING
-        puts(response.body)
 
+        puts "*****************************************"
+        puts response.body
+        puts "*****************************************"
+        
         Response.new(
           success?,
           message,
