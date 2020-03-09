@@ -89,12 +89,16 @@ module ActiveMerchant #:nodoc:
           Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |https|
             request      = Net::HTTP::Post.new(uri, {'Content-Type' => CONTENT_TYPE })
             request.body = request_body
+            https.set_debug_output($stdout)
             # Making the call
             https.request(request)
           end
-
+        
         # Parsing the response body
         @parsed_body = parse(response.body)
+        
+        # ONLY FOR TESTING
+        puts(response.body)
 
         Response.new(
           success?,
