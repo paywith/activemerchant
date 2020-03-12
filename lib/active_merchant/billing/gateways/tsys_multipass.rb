@@ -83,7 +83,7 @@ module ActiveMerchant #:nodoc:
 
       def request_params(options)
         {
-          "deviceID": @options[:device_id],
+          "deviceID": @options[:multipass_device_id],
           "transactionKey": @options[:transaction_key]
         }.merge!(options)
       end
