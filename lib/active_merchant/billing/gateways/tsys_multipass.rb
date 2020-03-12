@@ -28,7 +28,7 @@ module ActiveMerchant #:nodoc:
       attr_reader :response, :parsed_body
 
       def initialize(options={})
-        requires!(options, :device_id, :transaction_key)
+        requires!(options, :multipass_device_id, :transaction_key)
         super
       end
 
