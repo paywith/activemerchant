@@ -49,20 +49,32 @@ module ActiveMerchant #:nodoc:
       end
 
       def capture(money, tx_reference, options = {})
+        req_body = { "Capture": request_params(options) }.to_json
+        puts "*****************************************"
+        puts req_body
+        puts "*****************************************"
         commit(
-          request_body: { "Capture": request_params(options) }.to_json
+          request_body: req_body 
         )
       end
 
       def void(tx_reference, options = {})
+        req_body = { "Void": request_params(options) }.to_json
+        puts "*****************************************"
+        puts req_body
+        puts "*****************************************"
         commit(
-          request_body: { "Void": request_params(options) }.to_json
+          request_body: req_body
         )
       end
 
       def refund(money, tx_reference, options = {})
+        req_body = { "Return": request_params(options) }.to_json
+        puts "*****************************************"
+        puts req_body
+        puts "*****************************************"
         commit(
-          request_body: { "Return": request_params(options) }.to_json
+          request_body: req_body
         )
       end
 
