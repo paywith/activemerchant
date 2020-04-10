@@ -78,7 +78,7 @@ module ActiveMerchant #:nodoc:
         )
       end
 
-      def address_check(tx_reference, options = {})
+      def address_check(options = {})
         req_body = { "CardAuthentication": request_params(options) }.to_json
         puts "*****************************************"
         puts req_body
