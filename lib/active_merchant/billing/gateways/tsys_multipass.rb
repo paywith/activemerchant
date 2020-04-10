@@ -78,6 +78,16 @@ module ActiveMerchant #:nodoc:
         )
       end
 
+      def address_check(tx_reference, options = {})
+        req_body = { "CardAuthentication": request_params(options) }.to_json
+        puts "*****************************************"
+        puts req_body
+        puts "*****************************************"
+        commit(
+          request_body: req_body
+        )
+      end
+
       def supports_scrubbing?
         true
       end
