@@ -154,9 +154,7 @@ module ActiveMerchant #:nodoc:
       def avs_result_code
         return BLANK unless recognized_response_root_key?
 
-        avs_code = parsed_body_root_value['addressVerificationCode'] || BLANK
-
-        AVSResult.new(code: avs_code)
+        AVSResult.new(code: (parsed_body_root_value['addressVerificationCode'] || BLANK))
       end
 
       def error_code
