@@ -23,6 +23,7 @@ module ActiveMerchant #:nodoc:
         CaptureResponse
         VoidResponse
         ReturnResponse
+        CardAuthenticationResponse
       )
 
       attr_reader :response, :parsed_body
@@ -133,6 +134,7 @@ module ActiveMerchant #:nodoc:
           amount: amount,
           error_code: error_code,
           authorization: authorization,
+          avs_result: avs_result_code,
           test: test?
         )
       end
@@ -147,6 +149,14 @@ module ActiveMerchant #:nodoc:
         return BLANK unless recognized_response_root_key?
 
         parsed_body_root_value['responseMessage']
+      end
+
+      def avs_result_code
+        return BLANK unless recognized_response_root_key?
+
+        avs_code = parsed_body_root_value['addressVerificationCode']
+
+        AVSResult.new(code: avs_code)
       end
 
       def error_code
