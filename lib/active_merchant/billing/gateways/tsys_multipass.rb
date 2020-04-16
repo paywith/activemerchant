@@ -114,6 +114,9 @@ module ActiveMerchant #:nodoc:
       def commit(request_body:)
         @response =
           Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |https|
+            puts "***************************"
+            puts uri
+            puts "***************************"
             request      = Net::HTTP::Post.new(uri, {'Content-Type' => CONTENT_TYPE })
             request.body = request_body
             # Making the call
