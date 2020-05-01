@@ -41,9 +41,6 @@ module ActiveMerchant #:nodoc:
 
       def authorize(money, credit_card, options = {})
         req_body = { "Auth": request_params(options) }.to_json
-        puts "*****************************************"
-        puts req_body
-        puts "*****************************************"
         commit(
           request_body: req_body 
         )
@@ -51,9 +48,6 @@ module ActiveMerchant #:nodoc:
 
       def capture(money, tx_reference, options = {})
         req_body = { "Capture": request_params(options) }.to_json
-        puts "*****************************************"
-        puts req_body
-        puts "*****************************************"
         commit(
           request_body: req_body 
         )
@@ -61,9 +55,6 @@ module ActiveMerchant #:nodoc:
 
       def void(tx_reference, options = {})
         req_body = { "Void": request_params(options) }.to_json
-        puts "*****************************************"
-        puts req_body
-        puts "*****************************************"
         commit(
           request_body: req_body
         )
@@ -71,9 +62,6 @@ module ActiveMerchant #:nodoc:
 
       def refund(money, tx_reference, options = {})
         req_body = { "Return": request_params(options) }.to_json
-        puts "*****************************************"
-        puts req_body
-        puts "*****************************************"
         commit(
           request_body: req_body
         )
@@ -81,9 +69,6 @@ module ActiveMerchant #:nodoc:
 
       def avs_check(options = {})
         req_body = { "CardAuthentication": request_params(options) }.to_json
-        puts "*****************************************"
-        puts req_body
-        puts "*****************************************"
         commit(
           request_body: req_body
         )
@@ -114,9 +99,6 @@ module ActiveMerchant #:nodoc:
       def commit(request_body:)
         @response =
           Net::HTTP.start(uri.host, uri.port, use_ssl: true) do |https|
-            puts "***************************"
-            puts uri
-            puts "***************************"
             request      = Net::HTTP::Post.new(uri, {'Content-Type' => CONTENT_TYPE })
             request.body = request_body
             # Making the call
@@ -126,10 +108,6 @@ module ActiveMerchant #:nodoc:
         # Parsing the response body
         @parsed_body = parse(response.body)
 
-        puts "*****************************************"
-        puts response.body
-        puts "*****************************************"
-        
         Response.new(
           success?,
           message,
