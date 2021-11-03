@@ -10,8 +10,8 @@ class TsysMultipassTest < Test::Unit::TestCase
     @auth_id = 'XYZabc'
 
     @gateway = TsysMultipassGateway.new(
-      device_id: 'device_id',
-      transaction_key: 'reg_key'
+      multipass_device_id: 'device_id',
+      transaction_key: 'reg_key',
     )
 
     @auth_options = {
