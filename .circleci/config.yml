@@ -20,3 +20,6 @@ jobs:
       - run:
           name: brakeman
           command: make brakeman
+      - run:
+          name: bundle-audit
+          command: make bundle-audit
