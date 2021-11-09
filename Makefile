@@ -5,7 +5,7 @@ bash:
 	docker-compose run --rm gem bash
 
 brakeman:
-	docker-compose run --rm gem bundle exec brakeman --no-pager --path . --force
+	docker-compose run --rm gem bundle exec brakeman --no-pager --path lib --force -i config/brakeman.ignore
 
 bundle-audit:
 	docker-compose run --rm gem bundle exec bundle audit check --update

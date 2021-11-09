@@ -3,10 +3,10 @@
     {
       "warning_type": "SSL Verification Bypass",
       "warning_code": 71,
-      "fingerprint": "b23caa5f7ede9ea44e0a9d3702490a35b3f859fdf9ac861fd207e8f2637bc05e",
+      "fingerprint": "2c8e6899e92ced988fab88581ff7529380e3499f6a8e5240561507410b9117c5",
       "check_name": "SSLVerify",
       "message": "SSL certificate verification was bypassed",
-      "file": "lib/active_merchant/connection.rb",
+      "file": "active_merchant/connection.rb",
       "line": 163,
       "link": "https://brakemanscanner.org/docs/warning_types/ssl_verification_bypass/",
       "code": "http.verify_mode = OpenSSL::SSL::VERIFY_NONE",
@@ -23,10 +23,10 @@
     {
       "warning_type": "SSL Verification Bypass",
       "warning_code": 71,
-      "fingerprint": "f6202f147fb2f3172be0e9c849d418755c2b960d978e0a0b70897814abba8892",
+      "fingerprint": "98822dd2ec804be0432d19caea57dcc9e9a1efb1d71f153490d75645e2312d76",
       "check_name": "SSLVerify",
       "message": "SSL certificate verification was bypassed",
-      "file": "lib/support/ssl_version.rb",
+      "file": "support/ssl_version.rb",
       "line": 68,
       "link": "https://brakemanscanner.org/docs/warning_types/ssl_verification_bypass/",
       "code": "Net::HTTP.new(uri.host, uri.port).verify_mode = OpenSSL::SSL::VERIFY_NONE",
@@ -41,6 +41,6 @@
       "note": ""
     }
   ],
-  "updated": "2021-11-09 15:13:21 +0000",
+  "updated": "2021-11-09 19:11:03 +0000",
   "brakeman_version": "5.1.2"
 }
