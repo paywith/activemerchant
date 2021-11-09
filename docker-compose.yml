@@ -8,7 +8,7 @@ services:
         - GITHUB_USERNAME
         - GITHUB_TOKEN
     volumes:
-      - .:/app
+      - .:/var/app
       - bundle_cache:/usr/local/bundle
     environment:
       GITHUB_USERNAME: ${GITHUB_USERNAME}

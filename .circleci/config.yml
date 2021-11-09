@@ -17,3 +17,6 @@ jobs:
       - run:
           name: build_image
           command: make build
+      - run:
+          name: brakeman
+          command: make brakeman
