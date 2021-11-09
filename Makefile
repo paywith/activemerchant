@@ -12,3 +12,6 @@ bundle-audit:
 
 release:
 	docker run -v $$PWD:/var/gem --rm  -w /var/gem --entrypoint ./scripts/release paywith-activemerchant-gem $$GITHUB_TOKEN
+
+rubocop:
+	docker-compose run --rm gem rubocop
