@@ -4,6 +4,7 @@ ARG GITHUB_TOKEN
 ARG GITHUB_USERNAME
 
 WORKDIR /var/app
+
 COPY . .
 
 RUN gem install bundler && \
