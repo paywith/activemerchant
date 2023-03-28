@@ -11,4 +11,4 @@ AllCops:
     - "lib/active_merchant/billing/gateways/paypal_express.rb"
     - "vendor/**/*"
   ExtraDetails: false
-  TargetRubyVersion: 2.7
+  TargetRubyVersion: 3.0.5
