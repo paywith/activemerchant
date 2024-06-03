@@ -6,156 +6,13 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 371
+# Offense count: 1828
 # Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle, IndentationWidth.
-# SupportedStyles: with_first_argument, with_fixed_indentation
-Layout/ArgumentAlignment:
-  Enabled: false
-
-# Offense count: 1
-# Cop supports --auto-correct.
-Layout/EmptyLineAfterMagicComment:
-  Exclude:
-    - 'lib/active_merchant/billing/gateways/authorize_net_cim.rb'
-
-# Offense count: 6
-# Cop supports --auto-correct.
-# Configuration parameters: AllowAliasSyntax, AllowedMethods.
-# AllowedMethods: alias_method, public, protected, private
-Layout/EmptyLinesAroundAttributeAccessor:
-  Exclude:
-    - 'lib/active_merchant/billing/credit_card.rb'
-    - 'lib/active_merchant/billing/gateways/migs/migs_codes.rb'
-    - 'lib/active_merchant/connection.rb'
-    - 'lib/active_merchant/country.rb'
-    - 'test/test_helper.rb'
-    - 'test/unit/gateways/forte_test.rb'
-
-# Offense count: 2
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: empty_lines, no_empty_lines
-Layout/EmptyLinesAroundBlockBody:
-  Exclude:
-    - 'lib/active_merchant/billing/gateways/element.rb'
-    - 'lib/active_merchant/billing/gateways/modern_payments_cim.rb'
-
-# Offense count: 175
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: empty_lines, empty_lines_except_namespace, empty_lines_special, no_empty_lines, beginning_only, ending_only
-Layout/EmptyLinesAroundClassBody:
-  Enabled: false
-
-# Offense count: 92
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle, IndentationWidth.
-# SupportedStyles: consistent, consistent_relative_to_receiver, special_for_inner_method_call, special_for_inner_method_call_in_parentheses
-Layout/FirstArgumentIndentation:
-  Enabled: false
-
-# Offense count: 53
-# Cop supports --auto-correct.
-Layout/FirstArrayElementLineBreak:
-  Enabled: false
-
-# Offense count: 112
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle, IndentationWidth.
-# SupportedStyles: special_inside_parentheses, consistent, align_braces
-Layout/FirstHashElementIndentation:
-  Enabled: false
-
-# Offense count: 62
-# Cop supports --auto-correct.
-Layout/FirstHashElementLineBreak:
-  Enabled: false
-
-# Offense count: 1863
-# Cop supports --auto-correct.
-# Configuration parameters: AllowMultipleStyles, EnforcedHashRocketStyle, EnforcedColonStyle, EnforcedLastArgumentHashStyle.
+# Configuration parameters: EnforcedHashRocketStyle, EnforcedColonStyle, EnforcedLastArgumentHashStyle.
 # SupportedHashRocketStyles: key, separator, table
 # SupportedColonStyles: key, separator, table
 # SupportedLastArgumentHashStyles: always_inspect, always_ignore, ignore_implicit, ignore_explicit
 Layout/HashAlignment:
-  Enabled: false
-
-# Offense count: 460
-# Cop supports --auto-correct.
-# Configuration parameters: AllowDoxygenCommentStyle, AllowGemfileRubyComment.
-Layout/LeadingCommentSpace:
-  Enabled: false
-
-# Offense count: 4811
-# Cop supports --auto-correct.
-# Configuration parameters: AllowHeredoc, AllowURI, URISchemes, IgnoreCopDirectives, IgnoredPatterns.
-# URISchemes: http, https
-Layout/LineLength:
-  Max: 2602
-
-# Offense count: 1
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: symmetrical, new_line, same_line
-Layout/MultilineArrayBraceLayout:
-  Exclude:
-    - 'lib/active_merchant/billing/gateways/optimal_payment.rb'
-
-# Offense count: 288
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: symmetrical, new_line, same_line
-Layout/MultilineMethodCallBraceLayout:
-  Enabled: false
-
-# Offense count: 6
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle, IndentationWidth.
-# SupportedStyles: aligned, indented, indented_relative_to_receiver
-Layout/MultilineMethodCallIndentation:
-  Exclude:
-    - 'lib/active_merchant/billing/gateways/balanced.rb'
-    - 'lib/active_merchant/billing/gateways/migs.rb'
-
-# Offense count: 688
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: space, no_space
-Layout/SpaceAroundEqualsInParameterDefault:
-  Enabled: false
-
-# Offense count: 80
-# Cop supports --auto-correct.
-Layout/SpaceAroundKeyword:
-  Enabled: false
-
-# Offense count: 694
-# Cop supports --auto-correct.
-# Configuration parameters: AllowForAlignment, EnforcedStyleForExponentOperator.
-# SupportedStylesForExponentOperator: space, no_space
-Layout/SpaceAroundOperators:
-  Enabled: false
-
-# Offense count: 110
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle, EnforcedStyleForEmptyBrackets.
-# SupportedStyles: space, no_space, compact
-# SupportedStylesForEmptyBrackets: space, no_space
-Layout/SpaceInsideArrayLiteralBrackets:
-  Enabled: false
-
-# Offense count: 1363
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle, EnforcedStyleForEmptyBraces.
-# SupportedStyles: space, no_space, compact
-# SupportedStylesForEmptyBraces: space, no_space
-Layout/SpaceInsideHashLiteralBraces:
-  Enabled: false
-
-# Offense count: 117
-# Cop supports --auto-correct.
-Layout/SpaceInsidePercentLiteralDelimiters:
   Enabled: false
 
 # Offense count: 3
@@ -180,9 +37,8 @@ Lint/FormatParameterMismatch:
   Exclude:
     - 'test/unit/credit_card_formatting_test.rb'
 
-# Offense count: 1
-# Cop supports --auto-correct.
-Lint/NonDeterministicRequireOrder:
+# Offense count: 2
+Lint/SuppressedException:
   Exclude:
     - 'script/generate'
 
@@ -203,14 +59,85 @@ Lint/RescueException:
   Exclude:
     - 'lib/active_merchant/billing/gateways/quantum.rb'
 
-# Offense count: 1
+# Offense count: 284
 # Cop supports --auto-correct.
-Lint/SendWithMixinArgument:
-  Exclude:
-    - 'lib/active_merchant/billing/compatibility.rb'
+# Configuration parameters: AllowUnusedKeywordArguments, IgnoreEmptyMethods.
+Lint/UnusedMethodArgument:
+  Enabled: false
 
-# Offense count: 202
-# Configuration parameters: EnforcedStyle, AllowedIdentifiers.
+# Offense count: 1418
+Metrics/AbcSize:
+  Max: 192
+
+# Offense count: 26
+# Configuration parameters: CountComments, ExcludedMethods.
+# ExcludedMethods: refine
+Metrics/BlockLength:
+  Max: 54
+
+# Offense count: 9
+# Configuration parameters: CountBlocks.
+Metrics/BlockNesting:
+  Max: 6
+
+# Offense count: 175
+Metrics/CyclomaticComplexity:
+  Max: 36
+
+# Offense count: 1793
+# Configuration parameters: CountComments, ExcludedMethods.
+Metrics/MethodLength:
+  Max: 163
+  IgnoredMethods: 
+    - 'setup'
+
+# Offense count: 2
+# Configuration parameters: CountKeywordArgs.
+Metrics/ParameterLists:
+  Max: 6
+
+# Offense count: 129
+Metrics/PerceivedComplexity:
+  Max: 33
+
+# Offense count: 6
+Naming/AccessorMethodName:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/usa_epay_advanced.rb'
+    - 'test/remote/gateways/remote_authorize_net_cim_test.rb'
+    - 'test/unit/gateways/authorize_net_cim_test.rb'
+
+# Offense count: 15
+# Configuration parameters: EnforcedStyle.
+# SupportedStyles: snake_case, camelCase
+Naming/MethodName:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/card_connect.rb'
+    - 'lib/active_merchant/billing/gateways/latitude19.rb'
+    - 'lib/active_merchant/billing/gateways/qbms.rb'
+    - 'test/remote/gateways/remote_card_connect_test.rb'
+    - 'test/remote/gateways/remote_card_stream_test.rb'
+    - 'test/remote/gateways/remote_fat_zebra_test.rb'
+    - 'test/remote/gateways/remote_sage_pay_test.rb'
+    - 'test/unit/gateways/sage_pay_test.rb'
+
+# Offense count: 14
+# Configuration parameters: MinNameLength, AllowNamesEndingInNumbers, AllowedNames, ForbiddenNames.
+# AllowedNames: io, id, to, by, on, in, at, ip, db
+Naming/MethodParameterName:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/blue_snap.rb'
+    - 'lib/active_merchant/billing/gateways/cyber_source.rb'
+    - 'lib/active_merchant/billing/gateways/iridium.rb'
+    - 'lib/active_merchant/billing/gateways/latitude19.rb'
+    - 'lib/active_merchant/billing/gateways/merchant_ware.rb'
+    - 'lib/active_merchant/billing/gateways/quantum.rb'
+    - 'lib/active_merchant/billing/gateways/worldpay_online_payments.rb'
+    - 'test/unit/gateways/paypal/paypal_common_api_test.rb'
+    - 'test/unit/gateways/realex_test.rb'
+
+# Offense count: 49
+# Configuration parameters: EnforcedStyle.
 # SupportedStyles: snake_case, camelCase
 Naming/VariableName:
   Exclude:
@@ -226,37 +153,42 @@ Naming/VariableName:
     - 'test/unit/gateways/card_stream_test.rb'
     - 'test/unit/gateways/worldpay_online_payments_test.rb'
 
-# Offense count: 17
-# Cop supports --auto-correct.
+# Offense count: 2
 # Configuration parameters: EnforcedStyle.
-# SupportedStyles: separated, grouped
-Style/AccessorGrouping:
+# SupportedStyles: inline, group
+Style/AccessModifierDeclarations:
   Exclude:
-    - 'lib/active_merchant/connection.rb'
+    - 'test/unit/gateways/metrics_global_test.rb'
+    - 'test/unit/gateways/optimal_payment_test.rb'
 
-# Offense count: 12
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: always, conditionals
-Style/AndOr:
+# Offense count: 47
+# Configuration parameters: AllowedChars.
+Style/AsciiComments:
   Exclude:
+    - 'lib/active_merchant/billing/gateways/authorize_net_arb.rb'
+    - 'lib/active_merchant/billing/gateways/authorize_net_cim.rb'
     - 'lib/active_merchant/billing/gateways/beanstream/beanstream_core.rb'
-    - 'lib/active_merchant/billing/gateways/eway.rb'
-    - 'lib/active_merchant/billing/gateways/iridium.rb'
-    - 'lib/active_merchant/billing/gateways/pac_net_raven.rb'
-    - 'lib/active_merchant/billing/gateways/smart_ps.rb'
-    - 'lib/active_merchant/billing/gateways/stripe.rb'
-    - 'lib/active_merchant/billing/gateways/webpay.rb'
+    - 'lib/active_merchant/billing/gateways/eway_rapid.rb'
+    - 'lib/active_merchant/billing/gateways/netbanx.rb'
+    - 'lib/active_merchant/billing/gateways/ogone.rb'
+    - 'lib/active_merchant/billing/gateways/orbital.rb'
+    - 'lib/active_merchant/billing/gateways/payflow_express.rb'
+    - 'lib/active_merchant/billing/gateways/paystation.rb'
+    - 'lib/active_merchant/billing/gateways/psl_card.rb'
+    - 'lib/active_merchant/billing/gateways/sage.rb'
+    - 'test/remote/gateways/remote_data_cash_test.rb'
+    - 'test/remote/gateways/remote_nab_transact_test.rb'
 
-# Offense count: 3
+# Offense count: 2
 # Cop supports --auto-correct.
-Style/BlockComments:
+# Configuration parameters: EnforcedStyle.
+# SupportedStyles: percent_q, bare_percent
+Style/BarePercentLiterals:
   Exclude:
-    - 'test/remote/gateways/remote_barclays_epdq_extra_plus_test.rb'
-    - 'test/remote/gateways/remote_netpay_test.rb'
-    - 'test/remote/gateways/remote_payu_in_test.rb'
+    - 'test/unit/gateways/eway_rapid_test.rb'
+    - 'test/unit/gateways/orbital_test.rb'
 
-# Offense count: 78
+# Offense count: 77
 # Cop supports --auto-correct.
 # Configuration parameters: EnforcedStyle, ProceduralMethods, FunctionalMethods, IgnoredMethods, AllowBracesOnProceduralOneLiners, BracesRequiredMethods.
 # SupportedStyles: line_count_based, semantic, braces_for_chaining, always_braces
@@ -266,10 +198,20 @@ Style/BlockComments:
 Style/BlockDelimiters:
   Enabled: false
 
-# Offense count: 20
+# Offense count: 2
+Style/CaseEquality:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/braintree_blue.rb'
+    - 'test/test_helper.rb'
+
+# Offense count: 2
 # Cop supports --auto-correct.
-Style/CaseLikeIf:
-  Enabled: false
+# Configuration parameters: AutoCorrect, EnforcedStyle.
+# SupportedStyles: nested, compact
+Style/ClassAndModuleChildren:
+  Exclude:
+    - 'test/unit/gateways/optimal_payment_test.rb'
+    - 'test/unit/gateways/realex_test.rb'
 
 # Offense count: 30
 # Cop supports --auto-correct.
@@ -304,6 +246,116 @@ Style/ColonMethodCall:
 
 # Offense count: 5
 # Cop supports --auto-correct.
+# Configuration parameters: Keywords.
+# Keywords: TODO, FIXME, OPTIMIZE, HACK, REVIEW
+Style/CommentAnnotation:
+  Enabled: false # update later in next Update Rubocop PR
+
+Style/StringConcatenation:
+  Enabled: false # update later in next Update Rubocop PR
+Style/SingleArgumentDig:
+  Enabled: false # update later in next Update Rubocop PR
+Style/SlicingWithRange:
+  Enabled: false # update later in next Update Rubocop PR
+Style/HashEachMethods:
+  Enabled: false # update later in next Update Rubocop PR
+Style/CaseLikeIf:
+  Enabled: false # update later in next Update Rubocop PR
+Style/HashLikeCase:
+  Enabled: false # update later in next Update Rubocop PR
+Style/GlobalStdStream:
+  Enabled: false # update later in next Update Rubocop PR
+Style/HashTransformKeys:
+  Enabled: false # update later in next Update Rubocop PR
+Style/HashTransformValues:
+  Enabled: false # update later in next Update Rubocop PR
+Lint/RedundantSafeNavigation:
+  Enabled: false # update later in next Update Rubocop PR
+Lint/EmptyConditionalBody:
+  Enabled: false # update later in next Update Rubocop PR
+Style/SoleNestedConditional:
+  Exclude: # update later in next Update Rubocop PR
+    - 'lib/active_merchant/billing/gateways/card_connect.rb'
+    - 'lib/active_merchant/billing/gateways/blue_snap.rb'
+
+# Offense count: 8
+Style/CommentedKeyword:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/blue_pay.rb'
+    - 'lib/active_merchant/billing/gateways/usa_epay_advanced.rb'
+    - 'lib/active_merchant/errors.rb'
+    - 'test/remote/gateways/remote_cardknox_test.rb'
+    - 'test/unit/gateways/cardknox_test.rb'
+
+# Offense count: 22
+# Cop supports --auto-correct.
+# Configuration parameters: EnforcedStyle, SingleLineConditionsOnly, IncludeTernaryExpressions.
+# SupportedStyles: assign_to_condition, assign_inside_condition
+Style/ConditionalAssignment:
+  Enabled: false
+
+# Offense count: 7
+# Configuration parameters: AllowCoercion.
+Style/DateTime:
+  Exclude:
+    - 'test/remote/gateways/remote_first_pay_test.rb'
+    - 'test/remote/gateways/remote_pin_test.rb'
+    - 'test/remote/gateways/remote_trexle_test.rb'
+    - 'test/unit/gateways/orbital_test.rb'
+    - 'test/unit/gateways/paypal/paypal_common_api_test.rb'
+
+# Offense count: 211
+Style/Documentation:
+  Enabled: false
+
+# Offense count: 3
+Style/DoubleNegation:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/balanced.rb'
+    - 'lib/active_merchant/billing/gateways/netbilling.rb'
+    - 'lib/active_merchant/billing/gateways/pay_secure.rb'
+
+# Offense count: 18
+# Cop supports --auto-correct.
+Style/EachWithObject:
+  Exclude:
+    - 'lib/active_merchant/billing/avs_result.rb'
+    - 'lib/active_merchant/billing/gateways/beanstream/beanstream_core.rb'
+    - 'lib/active_merchant/billing/gateways/cams.rb'
+    - 'lib/active_merchant/billing/gateways/ezic.rb'
+    - 'lib/active_merchant/billing/gateways/federated_canada.rb'
+    - 'lib/active_merchant/billing/gateways/merchant_one.rb'
+    - 'lib/active_merchant/billing/gateways/micropayment.rb'
+    - 'lib/active_merchant/billing/gateways/money_movers.rb'
+    - 'lib/active_merchant/billing/gateways/orbital.rb'
+    - 'lib/active_merchant/billing/gateways/payu_in.rb'
+    - 'lib/active_merchant/billing/gateways/usa_epay_advanced.rb'
+    - 'lib/active_merchant/billing/model.rb'
+    - 'test/test_helper.rb'
+    - 'test/unit/gateways/authorize_net_test.rb'
+
+# Offense count: 6
+# Cop supports --auto-correct.
+Style/EmptyCaseCondition:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/inspire.rb'
+    - 'lib/active_merchant/billing/gateways/payflow/payflow_common_api.rb'
+    - 'lib/active_merchant/billing/gateways/smart_ps.rb'
+    - 'lib/active_merchant/billing/gateways/usa_epay_advanced.rb'
+
+# Offense count: 4
+# Cop supports --auto-correct.
+# Configuration parameters: EnforcedStyle.
+# SupportedStyles: empty, nil, both
+Style/EmptyElse:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/fat_zebra.rb'
+    - 'lib/active_merchant/billing/gateways/mercado_pago.rb'
+    - 'lib/active_merchant/billing/gateways/payeezy.rb'
+    - 'lib/active_merchant/billing/gateways/payment_express.rb'
+
+# Offense count: 5
+# Cop supports --auto-correct.
 Style/EmptyLiteral:
   Exclude:
     - 'lib/active_merchant/billing/gateways/element.rb'
@@ -316,8 +368,96 @@ Style/EmptyLiteral:
 # Cop supports --auto-correct.
 Style/ExplicitBlockArgument:
   Exclude:
-    - 'lib/active_merchant/billing/compatibility.rb'
-    - 'lib/active_merchant/billing/gateways/blue_snap.rb'
+    - 'lib/active_merchant/billing/gateways/qbms.rb'
+    - 'lib/active_merchant/billing/gateways/usa_epay_advanced.rb'
+    - 'test/remote/gateways/remote_ncr_secure_pay_test.rb'
+    - 'test/unit/gateways/card_connect_test.rb'
+    - 'test/unit/gateways/cardknox_test.rb'
+    - 'test/unit/gateways/latitude19_test.rb'
+    - 'test/unit/gateways/world_net_test.rb'
+    - 'test/unit/gateways/worldpay_online_payments_test.rb'
+
+# Offense count: 23
+# Cop supports --auto-correct.
+Style/Encoding:
+  Enabled: false
+
+# Offense count: 2
+Style/EvalWithLocation:
+  Exclude:
+    - 'lib/active_merchant/billing/credit_card.rb'
+    - 'lib/active_merchant/billing/response.rb'
+
+# Offense count: 5
+# Cop supports --auto-correct.
+Style/ExpandPathArguments:
+  Exclude:
+    - 'Rakefile'
+    - 'activemerchant.gemspec'
+    - 'script/generate'
+    - 'test/test_helper.rb'
+
+# Offense count: 11
+# Cop supports --auto-correct.
+# Configuration parameters: EnforcedStyle.
+# SupportedStyles: each, for
+Style/For:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/cardknox.rb'
+    - 'lib/active_merchant/billing/gateways/linkpoint.rb'
+    - 'lib/active_merchant/billing/gateways/merchant_one.rb'
+    - 'lib/active_merchant/billing/gateways/psl_card.rb'
+    - 'lib/active_merchant/billing/gateways/usa_epay_transaction.rb'
+    - 'test/remote/gateways/remote_orbital_test.rb'
+
+# Offense count: 97
+# Cop supports --auto-correct.
+# Configuration parameters: EnforcedStyle.
+# SupportedStyles: format, sprintf, percent
+Style/FormatString:
+  Enabled: false
+
+# Offense count: 22
+# Configuration parameters: EnforcedStyle.
+# SupportedStyles: annotated, template, unannotated
+Style/FormatStringToken:
+  Enabled: false
+
+# Offense count: 679
+# Cop supports --auto-correct.
+# Configuration parameters: EnforcedStyle.
+# SupportedStyles: when_needed, always, never
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+# Offense count: 5
+# Configuration parameters: AllowedVariables.
+Style/GlobalVars:
+  Exclude:
+    - 'test/remote/gateways/remote_finansbank_test.rb'
+    - 'test/remote/gateways/remote_garanti_test.rb'
+    - 'test/remote/gateways/remote_secure_pay_tech_test.rb'
+    - 'test/unit/gateways/finansbank_test.rb'
+    - 'test/unit/gateways/garanti_test.rb'
+
+Lint/MissingSuper:
+ Exclude:
+  - 'lib/active_merchant/billing/gateways/payway.rb'
+  - 'lib/active_merchant/billing/response.rb'
+  - 'lib/active_merchant/billing/gateways/orbital/orbital_soft_descriptors.rb'
+  - 'lib/active_merchant/billing/gateways/orbital.rb'
+  - 'lib/active_merchant/billing/gateways/linkpoint.rb'
+  - 'lib/active_merchant/errors.rb'
+
+# Offense count: 196
+# Configuration parameters: MinBodyLength.
+Style/GuardClause:
+  Enabled: false
+
+# Offense count: 6
+Style/IdenticalConditionalBranches:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/elavon.rb'
     - 'lib/active_merchant/billing/gateways/litle.rb'
     - 'lib/active_merchant/billing/gateways/maxipago.rb'
     - 'lib/active_merchant/billing/gateways/spreedly_core.rb'
@@ -353,7 +493,16 @@ Style/IfUnlessModifierOfIfUnless:
   Exclude:
     - 'lib/active_merchant/billing/gateways/merchant_e_solutions.rb'
 
-# Offense count: 54
+# Offense count: 2
+# Cop supports --auto-correct.
+# Configuration parameters: InverseMethods, InverseBlocks.
+Style/InverseMethods:
+  Exclude:
+    - 'lib/active_merchant/billing/gateways/ogone.rb'
+    - 'lib/active_merchant/billing/gateways/worldpay.rb'
+  Enabled: false # update later in next Update Rubocop PR
+
+# Offense count: 32
 # Cop supports --auto-correct.
 # Configuration parameters: IgnoredMethods.
 Style/MethodCallWithoutArgsParentheses:
@@ -606,50 +755,21 @@ Style/SingleLineMethods:
   Exclude:
     - 'test/unit/gateways/paypal/paypal_common_api_test.rb'
 
-# Offense count: 51
-# Cop supports --auto-correct.
-Style/SlicingWithRange:
-  Enabled: false
-
-# Offense count: 13
-# Cop supports --auto-correct.
-# Configuration parameters: AllowModifier.
-Style/SoleNestedConditional:
-  Exclude:
-    - 'lib/active_merchant/billing/credit_card.rb'
-    - 'lib/active_merchant/billing/gateways/authorize_net_arb.rb'
-    - 'lib/active_merchant/billing/gateways/authorize_net_cim.rb'
-    - 'lib/active_merchant/billing/gateways/card_connect.rb'
-    - 'lib/active_merchant/billing/gateways/card_stream.rb'
-    - 'lib/active_merchant/billing/gateways/global_collect.rb'
-    - 'lib/active_merchant/billing/gateways/merchant_e_solutions.rb'
-    - 'lib/active_merchant/billing/gateways/orbital.rb'
-    - 'lib/active_merchant/billing/gateways/orbital/orbital_soft_descriptors.rb'
-    - 'lib/active_merchant/billing/gateways/worldpay.rb'
-
-# Offense count: 3
-# Cop supports --auto-correct.
-# Configuration parameters: RequireEnglish.
-# SupportedStyles: use_perl_names, use_english_names
-Style/SpecialGlobalVars:
-  EnforcedStyle: use_perl_names
-
-# Offense count: 159
-# Cop supports --auto-correct.
-# Configuration parameters: Mode.
-Style/StringConcatenation:
-  Enabled: false
-
-# Offense count: 102
+# Offense count: 7
 # Cop supports --auto-correct.
 # Configuration parameters: EnforcedStyleForMultiline.
 # SupportedStylesForMultiline: comma, consistent_comma, no_comma
 Style/TrailingCommaInArrayLiteral:
   Enabled: false
 
-# Offense count: 1818
+# Offense count: 34
 # Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyleForMultiline.
-# SupportedStylesForMultiline: comma, consistent_comma, no_comma
-Style/TrailingCommaInHashLiteral:
+Style/ZeroLengthPredicate:
   Enabled: false
+
+# Offense count: 9321
+# Configuration parameters: AllowHeredoc, AllowURI, URISchemes, IgnoreCopDirectives, IgnoredPatterns.
+# URISchemes: http, https
+Metrics/LineLength:
+  Max: 2602
+
