@@ -15,3 +15,6 @@ release:
 
 rubocop:
 	docker-compose run --rm gem rubocop
+
+tests:
+	docker-compose run --rm gem bundle exec rake test
