@@ -1,6 +1,8 @@
 require 'test_helper'
 
 class EbanxTest < Test::Unit::TestCase
+  include CommStub
+
   def setup
     @gateway = EbanxGateway.new(integration_key: 'key')
     @credit_card = credit_card
@@ -17,10 +19,31 @@ class EbanxTest < Test::Unit::TestCase
     @gateway.expects(:ssl_request).returns(successful_purchase_response)
 
     response = @gateway.purchase(@amount, @credit_card, @options)
+
     assert_success response
 
     assert_equal '592db57ad6933455efbb62a48d1dfa091dd7cd092109db99', response.authorization
     assert response.test?
+  end
+
+  def test_successful_purchase_with_optional_processing_type_header
+    response = stub_comms(@gateway, :ssl_request) do
+      @gateway.purchase(@amount, @credit_card, @options.merge(processing_type: 'local'))
+    end.check_request do |_method, _endpoint, _data, headers|
+      assert_equal 'local', headers['x-ebanx-api-processing-type']
+    end.respond_with(successful_purchase_response)
+
+    assert_success response
+  end
+
+  def test_successful_purchase_with_soft_descriptor
+    response = stub_comms(@gateway, :ssl_request) do
+      @gateway.purchase(@amount, @credit_card, @options.merge(soft_descriptor: 'ActiveMerchant'))
+    end.check_request do |_method, _endpoint, data, _headers|
+      assert_match %r{"soft_descriptor\":\"ActiveMerchant\"}, data
+    end.respond_with(successful_purchase_response)
+
+    assert_success response
   end
 
   def test_failed_purchase
@@ -113,15 +136,7 @@ class EbanxTest < Test::Unit::TestCase
   end
 
   def test_successful_verify
-    @gateway.expects(:ssl_request).times(2).returns(successful_authorize_response, successful_void_response)
-
-    response = @gateway.verify(@credit_card, @options)
-    assert_success response
-    assert_equal nil, response.error_code
-  end
-
-  def test_successful_verify_with_failed_void
-    @gateway.expects(:ssl_request).times(2).returns(successful_authorize_response, failed_void_response)
+    @gateway.expects(:ssl_request).returns(successful_verify_response)
 
     response = @gateway.verify(@credit_card, @options)
     assert_success response
@@ -129,11 +144,11 @@ class EbanxTest < Test::Unit::TestCase
   end
 
   def test_failed_verify
-    @gateway.expects(:ssl_request).returns(failed_authorize_response)
+    @gateway.expects(:ssl_request).returns(failed_verify_response)
 
     response = @gateway.verify(@credit_card, @options)
     assert_failure response
-    assert_equal 'NOK', response.error_code
+    assert_equal 'Not accepted', response.message
   end
 
   def test_successful_store_and_purchase
@@ -146,6 +161,18 @@ class EbanxTest < Test::Unit::TestCase
     @gateway.expects(:ssl_request).returns(successful_purchase_with_stored_card_response)
 
     response = @gateway.purchase(@amount, store.authorization, @options)
+    assert_success response
+  end
+
+  def test_successful_purchase_and_inquire
+    @gateway.expects(:ssl_request).returns(successful_purchase_response)
+
+    purchase = @gateway.purchase(@amount, @credit_card, @options)
+    assert_success purchase
+
+    @gateway.expects(:ssl_request).returns(successful_purchase_response)
+    response = @gateway.inquire(purchase.authorization)
+
     assert_success response
   end
 
@@ -166,7 +193,7 @@ class EbanxTest < Test::Unit::TestCase
 
   def pre_scrubbed
     %q(
-      request_body={\"integration_key\":\"1231000\",\"operation\":\"request\",\"payment\":{\"amount_total\":\"1.00\",\"currency_code\":\"USD\",\"merchant_payment_code\":\"2bed75b060e936834e354d944aeaa892\",\"name\":\"Longbob Longsen\",\"email\":\"unspecified@example.com\",\"document\":\"853.513.468-93\",\"payment_type_code\":\"visa\",\"creditcard\":{\"card_number\":\"4111111111111111\",\"card_name\":\"Longbob Longsen\",\"card_due_date\":\"9/2018\",\"card_cvv\":\"123\"},\"address\":\"Rua E\",\"street_number\":\"1040\",\"city\":\"Maracana\u{fa}\",\"state\":\"CE\",\"zipcode\":\"61919-230\",\"country\":\"BR\",\"phone_number\":\"(555)555-5555\"}}
+      request_body={\"integration_key\":\"Ac1EwnH0ud2UIndICS37l0\",\"operation\":\"request\",\"payment\":{\"amount_total\":\"1.00\",\"currency_code\":\"USD\",\"merchant_payment_code\":\"2bed75b060e936834e354d944aeaa892\",\"name\":\"Longbob Longsen\",\"email\":\"unspecified@example.com\",\"document\":\"853.513.468-93\",\"payment_type_code\":\"visa\",\"creditcard\":{\"card_number\":\"4111111111111111\",\"card_name\":\"Longbob Longsen\",\"card_due_date\":\"9/2018\",\"card_cvv\":\"123\"},\"address\":\"Rua E\",\"street_number\":\"1040\",\"city\":\"Maracana\u{fa}\",\"state\":\"CE\",\"zipcode\":\"61919-230\",\"country\":\"BR\",\"phone_number\":\"(555)555-5555\"}}
     )
   end
 
@@ -197,6 +224,18 @@ class EbanxTest < Test::Unit::TestCase
   def failed_authorize_response
     %(
       {"payment":{"hash":"592dd2146d5b8a27924daaa0f0248d8c582cb2ce6b67495e","pin":"467618452","merchant_payment_code":"7883bdbbdfa961ce753247fbeb4ff99d","order_number":null,"status":"CA","status_date":"2017-05-30 17:12:03","open_date":"2017-05-30 17:12:03","confirm_date":null,"transfer_date":null,"amount_br":"3.31","amount_ext":"1.00","amount_iof":"0.01","currency_rate":"3.3000","currency_ext":"USD","due_date":"2017-06-02","instalments":"1","payment_type_code":"visa","transaction_status":{"acquirer":"EBANX","code":"NOK","description":"Sandbox - Test credit card, transaction declined reason insufficientFunds"},"pre_approved":false,"capture_available":false,"customer":{"document":"85351346893","email":"unspecified@example.com","name":"LONGBOB LONGSEN","birth_date":null}},"status":"SUCCESS"}
+    )
+  end
+
+  def successful_verify_response
+    %(
+      {"status":"SUCCESS","payment_type_code":"creditcard","card_verification":{"transaction_status":{"code":"OK","description":"Accepted"},"transaction_type":"ZERO DOLLAR"}}
+    )
+  end
+
+  def failed_verify_response
+    %(
+      {"status":"SUCCESS","payment_type_code":"discover","card_verification":{"transaction_status":{"code":"NOK", "description":"Not accepted"}, "transaction_type":"GHOST AUTHORIZATION"}}
     )
   end
 

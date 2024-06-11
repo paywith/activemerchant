@@ -27,7 +27,7 @@ class OppTest < Test::Unit::TestCase
         city:     'Istambul',
         state:    'IS',
         zip:      'H12JK2354',
-        country:  'TR',
+        country:  'TR'
       },
       shipping_address: {
         name:     '',
@@ -35,7 +35,7 @@ class OppTest < Test::Unit::TestCase
         city:     'Moskau',
         state:    'MO',
         zip:      'MO2342432',
-        country:  'RU',
+        country:  'RU'
       },
       customer: {
         merchant_customer_id:  "merchantCustomerId #{ip}",
@@ -48,13 +48,13 @@ class OppTest < Test::Unit::TestCase
         company_name:  'No such deal Ltd.',
         identification_doctype:  'PASSPORT',
         identification_docid:  'FakeID2342431234123',
-        ip:  ip,
-      },
+        ip:  ip
+      }
     }
 
     @minimal_request_options = {
       order_id: "Order #{time}",
-      description: 'Store Purchase - Books',
+      description: 'Store Purchase - Books'
     }
 
     @complete_request_options['customParameters[SHOPPER_test124TestName009]'] = 'customParameters_test'
@@ -173,11 +173,11 @@ class OppTest < Test::Unit::TestCase
   end
 
   def test_passes_3d_secure_fields
-    options = @complete_request_options.merge({eci: 'eci', cavv: 'cavv', xid: 'xid'})
+    options = @complete_request_options.merge({ eci: 'eci', cavv: 'cavv', xid: 'xid' })
 
     response = stub_comms(@gateway, :raw_ssl_request) do
       @gateway.purchase(@amount, @valid_card, options)
-    end.check_request do |method, endpoint, data, headers|
+    end.check_request do |_method, _endpoint, data, _headers|
       assert_match(/threeDSecure.eci=eci/, data)
       assert_match(/threeDSecure.verificationId=cavv/, data)
       assert_match(/threeDSecure.xid=xid/, data)
@@ -194,15 +194,16 @@ class OppTest < Test::Unit::TestCase
   private
 
   def pre_scrubbed
-    'paymentType=DB&amount=1.00&currency=EUR&paymentBrand=VISA&card.holder=Longbob+Longsen&card.number=4200000000000000&card.expiryMonth=05&card.expiryYear=2018&      card.cvv=123&billing.street1=456+My+Street&billing.street2=Apt+1&billing.city=Ottawa&billing.state=ON&billing.postcode=K1C2N6&billing.country=CA&authentication.entityId=8a8294174b7ecb28014b9699220015ca&authentication.password=sy6KJsT8&authentication.userId=8a8294174b7ecb28014b9699220015cc'
+    'paymentType=DB&amount=1.00&currency=EUR&descriptor=&merchantInvoiceId=&merchantTransactionId=50b5c1763c20c456a6208f7831dd0a04&paymentBrand=VISA&card.holder=Longbob+Longsen&card.number=4200000000000000&card.expiryMonth=05&card.expiryYear=2022&card.cvv=123&customParameters[SHOPPER_pluginId]=activemerchant&authentication.entityId=5c6602174b7ecb28014b96992'
   end
 
   def post_scrubbed
-    'paymentType=DB&amount=1.00&currency=EUR&paymentBrand=VISA&card.holder=Longbob+Longsen&card.number=[FILTERED]&card.expiryMonth=05&card.expiryYear=2018&      card.cvv=[FILTERED]&billing.street1=456+My+Street&billing.street2=Apt+1&billing.city=Ottawa&billing.state=ON&billing.postcode=K1C2N6&billing.country=CA&authentication.entityId=8a8294174b7ecb28014b9699220015ca&authentication.password=[FILTERED]&authentication.userId=8a8294174b7ecb28014b9699220015cc'
+    'paymentType=DB&amount=1.00&currency=EUR&descriptor=&merchantInvoiceId=&merchantTransactionId=50b5c1763c20c456a6208f7831dd0a04&paymentBrand=VISA&card.holder=Longbob+Longsen&card.number=[FILTERED]&card.expiryMonth=05&card.expiryYear=2022&card.cvv=[FILTERED]&customParameters[SHOPPER_pluginId]=activemerchant&authentication.entityId=5c6602174b7ecb28014b96992'
   end
 
   def successful_response(type, id)
-    OppMockResponse.new(200,
+    OppMockResponse.new(
+      200,
       JSON.generate({
         'id' => id,
         'paymentType' => type,
@@ -229,7 +230,8 @@ class OppTest < Test::Unit::TestCase
   end
 
   def successful_store_response(id)
-    OppMockResponse.new(200,
+    OppMockResponse.new(
+      200,
       JSON.generate({
         'id' => id,
         'result' => {
@@ -250,8 +252,9 @@ class OppTest < Test::Unit::TestCase
     )
   end
 
-  def failed_response(type, id, code='100.100.101')
-    OppMockResponse.new(400,
+  def failed_response(type, id, code = '100.100.101')
+    OppMockResponse.new(
+      400,
       JSON.generate({
         'id' => id,
         'paymentType' => type,
@@ -274,8 +277,9 @@ class OppTest < Test::Unit::TestCase
     )
   end
 
-  def failed_store_response(id, code='100.100.101')
-    OppMockResponse.new(400,
+  def failed_store_response(id, code = '100.100.101')
+    OppMockResponse.new(
+      400,
       JSON.generate({
         'id' => id,
         'result' => {
@@ -304,5 +308,4 @@ class OppTest < Test::Unit::TestCase
       @body = body
     end
   end
-
 end

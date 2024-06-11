@@ -7,8 +7,8 @@ class RemoteBarclaycardSmartpayTest < Test::Unit::TestCase
 
     @amount = 100
     @error_amount = 1_000_000_000_000_000_000_000
-    @credit_card = credit_card('4111111111111111', :month => 10, :year => 2020, :verification_value => 737)
-    @declined_card = credit_card('4000300011112220', :month => 3, :year => 2030, :verification_value => 737)
+    @credit_card = credit_card('4111111111111111', month: 10, year: 2020, verification_value: 737)
+    @declined_card = credit_card('4000300011112220', month: 3, year: 2030, verification_value: 737)
     @three_ds_enrolled_card = credit_card('4212345678901237', brand: :visa)
     @three_ds_2_enrolled_card = credit_card('4917610000000000', month: 10, year: 2020, verification_value: '737', brand: :visa)
 
@@ -100,10 +100,12 @@ class RemoteBarclaycardSmartpayTest < Test::Unit::TestCase
       }
     }
 
-    @avs_credit_card = credit_card('4400000000000008',
-      :month => 8,
-      :year => 2018,
-      :verification_value => 737)
+    @avs_credit_card = credit_card(
+      '4400000000000008',
+      month: 8,
+      year: 2018,
+      verification_value: 737
+    )
 
     @avs_address = @options.clone
     @avs_address.update(billing_address: {
@@ -123,7 +125,7 @@ class RemoteBarclaycardSmartpayTest < Test::Unit::TestCase
       shopper_reference: 'John Smith',
       billing_address: address(),
       order_id: '123',
-      stored_credential: {reason_type: 'unscheduled'},
+      stored_credential: { reason_type: 'unscheduled' },
       three_ds_2: {
         channel: 'browser',
         browser_info: {
@@ -158,25 +160,31 @@ class RemoteBarclaycardSmartpayTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase_with_unusual_address
-    response = @gateway.purchase(@amount,
+    response = @gateway.purchase(
+      @amount,
       @credit_card,
-      @options_with_alternate_address)
+      @options_with_alternate_address
+    )
     assert_success response
     assert_equal '[capture-received]', response.message
   end
 
   def test_successful_purchase_with_house_number_and_street
-    response = @gateway.purchase(@amount,
+    response = @gateway.purchase(
+      @amount,
       @credit_card,
-      @options.merge(street: 'Top Level Drive', house_number: '100'))
+      @options.merge(street: 'Top Level Drive', house_number: '100')
+    )
     assert_success response
     assert_equal '[capture-received]', response.message
   end
 
   def test_successful_purchase_with_no_address
-    response = @gateway.purchase(@amount,
+    response = @gateway.purchase(
+      @amount,
       @credit_card,
-      @options_with_no_address)
+      @options_with_no_address
+    )
     assert_success response
     assert_equal '[capture-received]', response.message
   end
@@ -254,9 +262,9 @@ class RemoteBarclaycardSmartpayTest < Test::Unit::TestCase
       shopper_reference: 'John Smith',
       billing_address: address(),
       order_id: '123',
-      stored_credential: {reason_type: 'unscheduled'},
+      stored_credential: { reason_type: 'unscheduled' },
       three_ds_2: {
-        channel: 'app',
+        channel: 'app'
       }
     }
 
@@ -342,7 +350,7 @@ class RemoteBarclaycardSmartpayTest < Test::Unit::TestCase
   end
 
   def test_successful_third_party_payout
-    response = @gateway.credit(@amount, @credit_card, @options_with_credit_fields.merge({third_party_payout: true}))
+    response = @gateway.credit(@amount, @credit_card, @options_with_credit_fields.merge({ third_party_payout: true }))
     assert_success response
   end
 
@@ -390,7 +398,7 @@ class RemoteBarclaycardSmartpayTest < Test::Unit::TestCase
   end
 
   def test_failed_store
-    response = @gateway.store(credit_card('4111111111111111', :month => '', :year => '', :verification_value => ''), @options)
+    response = @gateway.store(credit_card('4111111111111111', month: '', year: '', verification_value: ''), @options)
     assert_failure response
     assert_equal '129: Expiry Date Invalid', response.message
   end
@@ -409,17 +417,17 @@ class RemoteBarclaycardSmartpayTest < Test::Unit::TestCase
   end
 
   def test_nonfractional_currency
-    response = @gateway.authorize(1234, @credit_card, @options.merge(:currency => 'JPY'))
+    response = @gateway.authorize(1234, @credit_card, @options.merge(currency: 'JPY'))
     assert_success response
-    response = @gateway.purchase(1234, @credit_card, @options.merge(:currency => 'JPY'))
+    response = @gateway.purchase(1234, @credit_card, @options.merge(currency: 'JPY'))
     assert_success response
   end
 
   def test_three_decimal_currency
-    response = @gateway.authorize(1234, @credit_card, @options.merge(:currency => 'OMR'))
+    response = @gateway.authorize(1234, @credit_card, @options.merge(currency: 'OMR'))
     assert_success response
 
-    response = @gateway.purchase(1234, @credit_card, @options.merge(:currency => 'OMR'))
+    response = @gateway.purchase(1234, @credit_card, @options.merge(currency: 'OMR'))
     assert_success response
   end
 

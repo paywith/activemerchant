@@ -18,11 +18,29 @@ module ActiveMerchant #:nodoc:
     # * Dankort
     # * Maestro
     # * Forbrugsforeningen
+    # * Sodexo
+    # * Vr
+    # * Carnet
+    # * Synchrony
+    # * Routex
     # * Elo
     # * Alelo
     # * Cabal
     # * Naranja
     # * UnionPay
+    # * Alia
+    # * Olimpica
+    # * Creditel
+    # * Confiable
+    # * Mada
+    # * BpPlus
+    # * Passcard
+    # * Edenred
+    # * Anda
+    # * Creditos directos (Tarjeta D)
+    # * Panal
+    # * Verve
+    # * Tuya
     #
     # For testing purposes, use the 'bogus' credit card brand. This skips the vast majority of
     # validations, allowing you to focus on your core concerns until you're ready to be more concerned
@@ -52,6 +70,8 @@ module ActiveMerchant #:nodoc:
     class CreditCard < Model
       include CreditCardMethods
 
+      BRANDS_WITH_SPACES_IN_NUMBER = %w(bp_plus)
+
       class << self
         # Inherited, but can be overridden w/o changing parent's value
         attr_accessor :require_verification_value
@@ -67,7 +87,7 @@ module ActiveMerchant #:nodoc:
       attr_reader :number
 
       def number=(value)
-        @number = (empty?(value) ? value : value.to_s.gsub(/[^\d]/, ''))
+        @number = (empty?(value) ? value : filter_number(value))
       end
 
       # Returns or sets the expiry month for the card.
@@ -93,11 +113,29 @@ module ActiveMerchant #:nodoc:
       # * +'dankort'+
       # * +'maestro'+
       # * +'forbrugsforeningen'+
+      # * +'sodexo'+
+      # * +'vr'+
+      # * +'carnet'+
+      # * +'synchrony'+
+      # * +'routex'+
       # * +'elo'+
       # * +'alelo'+
       # * +'cabal'+
       # * +'naranja'+
       # * +'union_pay'+
+      # * +'alia'+
+      # * +'olimpica'+
+      # * +'creditel'+
+      # * +'confiable'+
+      # * +'mada'+
+      # * +'bp_plus'+
+      # * +'passcard'+
+      # * +'edenred'+
+      # * +'anda'+
+      # * +'tarjeta-d'+
+      # * +'panal'+
+      # * +'verve'+
+      # * +'tuya'+
       #
       # Or, if you wish to test your implementation, +'bogus'+.
       #
@@ -188,7 +226,7 @@ module ActiveMerchant #:nodoc:
         'contactless' => 'Data was read by a Contactless EMV kernel. Issuer script results are not available.',
         'contactless_magstripe' => 'Contactless data was read with a non-EMV protocol.',
         'contact' => 'Data was read using the EMV protocol. Issuer script results may follow.',
-        'contact_quickchip' => 'Data was read by the Quickchip EMV kernel. Issuer script results are not available.',
+        'contact_quickchip' => 'Data was read by the Quickchip EMV kernel. Issuer script results are not available.'
       }
 
       # Returns the ciphertext of the card's encrypted PIN.
@@ -254,7 +292,7 @@ module ActiveMerchant #:nodoc:
       end
 
       %w(month year start_month start_year).each do |m|
-        class_eval %(
+        class_eval <<~RUBY, __FILE__, __LINE__ + 1
           def #{m}=(v)
             @#{m} = case v
             when "", nil, 0
@@ -263,7 +301,7 @@ module ActiveMerchant #:nodoc:
               v.to_i
             end
           end
-        )
+        RUBY
       end
 
       def verification_value?
@@ -319,7 +357,20 @@ module ActiveMerchant #:nodoc:
         icc_data.present?
       end
 
+      def allow_spaces_in_card?(number = nil)
+        BRANDS_WITH_SPACES_IN_NUMBER.include?(self.class.brand?(self.number || number))
+      end
+
       private
+
+      def filter_number(value)
+        regex = if allow_spaces_in_card?(value)
+                  /[^\d ]/
+                else
+                  /[^\d]/
+                end
+        value.to_s.gsub(regex, '')
+      end
 
       def validate_essential_attributes #:nodoc:
         errors = []
@@ -329,7 +380,7 @@ module ActiveMerchant #:nodoc:
           errors << [:last_name,  'cannot be empty'] if last_name.blank?
         end
 
-        if(empty?(month) || empty?(year))
+        if empty?(month) || empty?(year)
           errors << [:month, 'is required'] if empty?(month)
           errors << [:year,  'is required'] if empty?(year)
         else
@@ -348,9 +399,7 @@ module ActiveMerchant #:nodoc:
       def validate_card_brand_and_number #:nodoc:
         errors = []
 
-        if !empty?(brand)
-          errors << [:brand, 'is invalid'] if !CreditCard.card_companies.include?(brand)
-        end
+        errors << [:brand, 'is invalid'] if !empty?(brand) && !CreditCard.card_companies.include?(brand)
 
         if empty?(number)
           errors << [:number, 'is required']
@@ -358,9 +407,7 @@ module ActiveMerchant #:nodoc:
           errors << [:number, 'is not a valid credit card number']
         end
 
-        if errors.empty?
-          errors << [:brand, 'does not match the card number'] if !CreditCard.matching_brand?(number, brand)
-        end
+        errors << [:brand, 'does not match the card number'] if errors.empty? && !CreditCard.matching_brand?(number, brand)
 
         errors
       end
@@ -378,6 +425,7 @@ module ActiveMerchant #:nodoc:
 
       class ExpiryDate #:nodoc:
         attr_reader :month, :year
+
         def initialize(month, year)
           @month = month.to_i
           @year = year.to_i

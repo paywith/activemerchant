@@ -3,7 +3,7 @@ require 'active_support'
 require 'active_merchant'
 
 class GatewaySupport #:nodoc:
-  ACTIONS = [:purchase, :authorize, :capture, :void, :credit, :recurring]
+  ACTIONS = %i[purchase authorize capture void credit recurring]
 
   include ActiveMerchant::Billing
 
@@ -23,8 +23,8 @@ class GatewaySupport #:nodoc:
     @gateways.delete(ActiveMerchant::Billing::BogusGateway)
   end
 
-  def each_gateway
-    @gateways.each { |g| yield g }
+  def each_gateway(&block)
+    @gateways.each(&block)
   end
 
   def features
