@@ -412,7 +412,8 @@ module ActiveMerchant #:nodoc:
           message_from_result(result),
           response_hash,
           authorization: result.transaction&.id,
-          test: test?
+          test: test?,
+          amount: result.transaction.amount * 100
         )
       end
 
@@ -435,6 +436,7 @@ module ActiveMerchant #:nodoc:
           options[:cvv_result] = result.transaction.cvv_response_code
         end
         options[:test] = test?
+        options[:amount] = result.transaction.amount * 1_00
         options
       end
 
