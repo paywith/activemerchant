@@ -72,6 +72,7 @@ class BraintreeBlueTest < Test::Unit::TestCase
 
     assert_equal 'transaction_id', response.authorization
     assert_equal true, response.test
+    assert_equal 1_00, response.amount
   end
 
   def test_purchase_transaction

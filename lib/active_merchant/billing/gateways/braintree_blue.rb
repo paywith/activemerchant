@@ -413,7 +413,7 @@ module ActiveMerchant #:nodoc:
           response_hash,
           authorization: result.transaction&.id,
           test: test?,
-          amount: result.transaction.amount * 100
+          amount: result.transaction.amount * 1_00
         )
       end
 
