@@ -66,7 +66,7 @@ class BraintreeBlueTest < Test::Unit::TestCase
 
   def test_authorize_transaction
     Braintree::TransactionGateway.any_instance.expects(:sale).
-      returns(braintree_result)
+      returns(braintree_result(amount: "1.0"))
 
     response = @gateway.authorize(100, credit_card('41111111111111111111'))
 
