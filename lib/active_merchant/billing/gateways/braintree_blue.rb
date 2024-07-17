@@ -412,7 +412,8 @@ module ActiveMerchant #:nodoc:
           message_from_result(result),
           response_hash,
           authorization: result.transaction&.id,
-          test: test?
+          test: test?,
+          amount: result.transaction&.amount.to_f * 1_00
         )
       end
 
@@ -434,7 +435,13 @@ module ActiveMerchant #:nodoc:
           options[:avs_result] = { code: avs_code_from(result.transaction) }
           options[:cvv_result] = result.transaction.cvv_response_code
         end
+
         options[:test] = test?
+
+        if result.transaction.present?
+          options[:amount] = result.transaction.amount.to_f * 1_00
+        end
+
         options
       end
 
