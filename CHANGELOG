@@ -2,6 +2,75 @@
 = ActiveMerchant CHANGELOG
 
 == HEAD
+* Mercury, TransFirst: Repair gateways following updates to `rexml` [aenand] #5206
+* NMI: Fix Decrypted indicator for Google/Apple pay [javierpedrozaing] #5196
+* FlexCharge: add more descriptives error messages [gasb150] #5199
+* Braintree: Updates to Paypal Integration [almalee24] #5190
+* Stripe and Stripe PI: Add metadata and order_id for refund and void [yunnydang] #5204
+* CommerceHub: Update test url [DustinHaefele] #5211
+* Adyen: Fix billing address empty string error [yunnydang] #5208
+* Elavon: Update sending CVV for MIT transactions  [almalee24] #5210
+* Adyen: Fix NT integration [jherreraa] #5155
+* HPS: Update NetworkTokenizationCreditCard flow [almalee24] #5178
+* Braintree: Support override_application_id [aenand] #5194
+* Decidir: Pass CVV for NT [almalee24] #5205
+* NMI: Add customer vault fields [yunnydang] #5215
+* CheckoutV2: Add inquire method [almalee24] #5209
+* Decidir & Braintree: Scrub cryptogram and card number [almalee24] #5220
+* Naranja: Update valid number check to include luhn10 [DustinHaefele] #5217
+* Cybersource: Add apple_pay with discover. [DustinHaefele] #5213
+* MercadoPago: Add idempotency key field [yunnydang] #5229
+* Adyen: Update split refund method [yunnydang] #5218
+* Adyen: Remove raw_error_message [almalee24] #5202
+* Elavon: Remove old Stored Credential method [almalee24] #5219
+* PayTrace: Update MultiResponse for Capture [almalee24] #5203
+* Adyen: Add support for Pan Only GooglePay [almalee24] #5221
+* Decidir: Send extra fields for tokenized NT transactions [sinourain] #5224
+* StripePI: Skip add_network_token_cryptogram_and_eci method to accept ApplePay recurring payments [sinourain] #5212
+* Decidir: Fix scrub method after update NT fields [sinourain] #5241
+* Cybersource and Cybersource Rest: Update card type code for Carnet cards [rachelkirk] #5235
+* Stripe PI: Add challenge as valid value for request_three_d_secure [jcreiff] #5238
+* StripePI: Add metadata for GooglePay FPAN [almalee24] #5242
+* Paypal: Add inquire method [almalee24] #5231
+* Adyen: Enable multiple legs within airline data [jcreiff] #5249
+* SafeCharge: Add card holder verification fields [yunnydang] #5252
+* Iveri: Add AuthorisationReversal for Auth Void [almalee24] #5233
+* Stripe PI: Update Stored Credentials [almalee24] #5236
+* Checkout V2: Update stored credential options function [jherreraa] #5239
+* Ebanx: Add support for Stored Credentials [almalee24] #5243
+
+== Version 1.137.0 (August 2, 2024)
+* Unlock dependency on `rexml` to allow fixing a CVE (#5181).
+* Bump Ruby version to 3.1 [dustinhaefele] #5104
+* FlexCharge: Update inquire method to use the new orders end-point
+* Worldpay: Prefer options for network_transaction_id [aenand] #5129
+* Braintree: Prefer options for network_transaction_id [aenand] #5129
+* Cybersource Rest: Update support for stored credentials [aenand] #5083
+* Plexo: Add support to NetworkToken payments [euribe09] #5130
+* Braintree: Update card verfification payload if billing address fields are not present [yunnydang] #5142
+* DLocal: Update the phone and ip fields [yunnydang] #5143
+* CheckoutV2: Add support for risk data fields [yunnydang] #5147
+* Pin Payments: Add new 3DS params mentioned in Pin Payments docs [hudakh] #4720
+* RedsysRest: Add support for stored credentials & 3DS exemptions [jherreraa] #5132
+* CheckoutV2: Truncate the reference id for amex transactions [yunnydang] #5151
+* CommerceHub: Add billing address name override [yunnydang] #5157
+* StripePI: Add optional ability for 3DS exemption on verify calls [yunnydang] #5160
+* CyberSource: Update stored credentials [sinourain] #5136
+* Orbital: Update to accept UCAF Indicator GSF [almalee24] #5150
+* CyberSource: Add addtional invoiceHeader fields [yunnydang] #5161
+* MerchantWarrior: Update phone, email, ip and store ID [almalee24] #5158
+* Credorax: Update 3DS version mapping [almalee24] #5159
+* Add Maestro card bins [yunnydang] #5172
+* Braintree: Remove stored credential v1 [almalee24] #5175
+* Braintree Blue: Pass overridden mid into client token for GS 3DS [sinourain] #5166
+* Moneris: Update crypt_type for 3DS [almalee24] #5162
+* CheckoutV2: Update 3DS message & error code [almalee24] #5177
+* DecicirPlus: Update error_message to add safety navigator [almalee24] #5187
+* Elavon: Add updated stored credential version [almalee24] #5170
+* Adyen: Add header fields to response body [yunnydang] #5184
+* Stripe and Stripe PI: Add header fields to response body [yunnydang] #5185
+
+== Version 1.136.0 (June 3, 2024)
 * Shift4V2: Add new gateway based on SecurionPay adapter [heavyblade] #4860
 * TNS: Use the specified order_id in request if available [yunnydang] #4880
 * Cybersource: Support recurring apple pay [aenand] #4874
@@ -174,6 +243,10 @@
 * Worldpay: Add support for deafult ECI value [aenand] #5126
 * DLocal: Update stored credentials [sinourain] #5112
 * NMI: Add NTID override [yunnydang] #5134
+* Cybersource Rest: Support L2/L3 data [aenand] #5117
+* Worldpay: Support L2/L3 data [aenand] #5117
+* Support UATP cardtype [javierpedrozaing] #5137
+* Litle: Add 141 and 142 as successful responses [almalee24] #5135
 
 == Version 1.135.0 (August 24, 2023)
 * PaymentExpress: Correct endpoints [steveh] #4827

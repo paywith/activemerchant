@@ -26,7 +26,8 @@ class RemoteFlexChargeTest < Test::Unit::TestCase
       cvv_result_code: '111',
       cavv_result_code: '111',
       timezone_utc_offset: '-5',
-      billing_address: address.merge(name: 'Cure Tester')
+      billing_address: address.merge(name: 'Cure Tester'),
+      extra_data: ''
     }
 
     @cit_options = @options.merge(
@@ -114,12 +115,57 @@ class RemoteFlexChargeTest < Test::Unit::TestCase
     assert_equal 'APPROVED', response.message
   end
 
-  def test_failed_purchase
+  def test_successful_purchase_mit_with_billing_address
+    set_credentials!
+    @options[:billing_address] = address.merge(name: 'Jhon Doe', country: 'US')
+    response = @gateway.purchase(@amount, @credit_card_mit, @options)
+    assert_success response
+    assert_equal 'APPROVED', response.message
+  end
+
+  def test_successful_authorize_cit
+    @cit_options[:phone] = '998888'
+    set_credentials!
+    response = @gateway.authorize(@amount, @credit_card_mit, @cit_options)
+    assert_success response
+    assert_equal 'CAPTUREREQUIRED', response.message
+  end
+
+  def test_successful_authorize_and_capture_cit
+    @cit_options[:phone] = '998888'
+    set_credentials!
+    response = @gateway.authorize(@amount, @credit_card_mit, @cit_options)
+    assert_success response
+    assert_equal 'CAPTUREREQUIRED', response.message
+
+    assert capture = @gateway.capture(@amount, response.authorization)
+    assert_success capture
+  end
+
+  def test_failed_purchase_invalid_time
+    set_credentials!
+    response = @gateway.purchase(@amount, @credit_card_cit, @options.merge({ mit_expiry_date_utc: '' }))
+    assert_failure response
+    assert_equal nil, response.error_code
+    assert_not_nil response.params['TraceId']
+    assert_equal response.message, '{"ExpiryDateUtc":["The field ExpiryDateUtc is invalid."]}'
+  end
+
+  def test_failed_purchase_required_fields
     set_credentials!
     response = @gateway.purchase(@amount, @credit_card_cit, billing_address: address)
     assert_failure response
     assert_equal nil, response.error_code
     assert_not_nil response.params['TraceId']
+    error_list = JSON.parse response.message
+    assert_equal error_list.length, 7
+    assert_equal error_list['OrderId'], ["Merchant's orderId is required"]
+    assert_equal error_list['Transaction.Id'], ['The Id field is required.']
+    assert_equal error_list['Transaction.ResponseCode'], ['The ResponseCode field is required.']
+    assert_equal error_list['Transaction.AvsResultCode'], ['The AvsResultCode field is required.']
+    assert_equal error_list['Transaction.CvvResultCode'], ['The CvvResultCode field is required.']
+    assert_equal error_list['Transaction.CavvResultCode'], ['The CavvResultCode field is required.']
+    assert_equal error_list['Transaction.ResponseCodeSource'], ['The ResponseCodeSource field is required.']
   end
 
   def test_failed_cit_declined_purchase
@@ -137,6 +183,16 @@ class RemoteFlexChargeTest < Test::Unit::TestCase
     assert refund = @gateway.refund(@amount, purchase.authorization)
     assert_success refund
     assert_equal 'DECLINED', refund.message
+  end
+
+  def test_successful_void
+    @cit_options[:phone] = '998888'
+    set_credentials!
+    response = @gateway.authorize(@amount, @credit_card_mit, @cit_options)
+    assert_success response
+
+    assert void = @gateway.void(response.authorization)
+    assert_success void
   end
 
   def test_partial_refund
@@ -174,9 +230,15 @@ class RemoteFlexChargeTest < Test::Unit::TestCase
   end
 
   def test_successful_inquire_request
+    @cit_options[:phone] = '998888'
     set_credentials!
-    response = @gateway.inquire('f8da8dc7-17de-4b5e-858d-4bdc47cd5dbf', {})
+
+    response = @gateway.authorize(@amount, @credit_card_mit, @cit_options)
     assert_success response
+
+    response = @gateway.inquire(response.authorization, {})
+    assert_success response
+    assert_equal 'CAPTUREREQUIRED', response.message
   end
 
   def test_unsuccessful_inquire_request

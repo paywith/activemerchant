@@ -76,6 +76,14 @@ class RemoteCyberSourceTest < Test::Unit::TestCase
       source: :network_token
     )
 
+    @carnet_credit_card = credit_card(
+      '5062280000000002',
+      verification_value: '321',
+      month: '12',
+      year: (Time.now.year + 2).to_s,
+      brand: :carnet
+    )
+
     @amount = 100
 
     @options = {
@@ -96,6 +104,10 @@ class RemoteCyberSourceTest < Test::Unit::TestCase
       ignore_cvv: 'true',
       commerce_indicator: 'internet',
       user_po: 'ABC123',
+      merchant_descriptor_country: 'US',
+      merchant_descriptor_state: 'NY',
+      merchant_descriptor_city: 'test123',
+      submerchant_id: 'AVSBSGDHJMNGFR',
       taxable: true,
       sales_slip_number: '456',
       airline_agent_code: '7Q',
@@ -129,6 +141,8 @@ class RemoteCyberSourceTest < Test::Unit::TestCase
     + '1111111115555555222233101abcdefghijkl7777777777777777777777777promotionCde'
   end
 
+  # Scrubbing is working but may fail at the @credit_card.verification_value assertion
+  # if the the 3 digits are showing up in the Cybersource requestID
   def test_transcript_scrubbing
     transcript = capture_transcript(@gateway) do
       @gateway.purchase(@amount, @credit_card, @options)
@@ -190,7 +204,7 @@ class RemoteCyberSourceTest < Test::Unit::TestCase
     }
     @options[:commerce_indicator] = 'internet'
 
-    assert response = @gateway.authorize(@amount, @credit_card, @options)
+    assert response = @gateway.authorize(@amount, @master_credit_card, @options)
     assert_successful_response(response)
     assert !response.authorization.blank?
   ensure
@@ -433,6 +447,12 @@ class RemoteCyberSourceTest < Test::Unit::TestCase
   def test_successful_purchase
     assert response = @gateway.purchase(@amount, @credit_card, @options)
     assert_successful_response(response)
+  end
+
+  def test_successful_purchase_with_carnet_card
+    assert response = @gateway.purchase(@amount, @carnet_credit_card, @options)
+    assert_successful_response(response)
+    assert_equal '002', response.params['cardType']
   end
 
   def test_successful_purchase_with_bank_account

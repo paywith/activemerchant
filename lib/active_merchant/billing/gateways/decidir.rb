@@ -106,7 +106,9 @@ module ActiveMerchant #:nodoc:
           gsub(%r((apikey: )\w+)i, '\1[FILTERED]').
           gsub(%r((\"card_number\\\":\\\")\d+), '\1[FILTERED]').
           gsub(%r((\"security_code\\\":\\\")\d+), '\1[FILTERED]').
-          gsub(%r((\"emv_issuer_data\\\":\\\")\d+), '\1[FILTERED]')
+          gsub(%r((\"emv_issuer_data\\\":\\\")\d+), '\1[FILTERED]').
+          gsub(%r((\"cryptogram\\\":\\\"/)\w+), '\1[FILTERED]').
+          gsub(%r((\"token_card_data\\\":{.*\\\"token\\\":\\\")\d+), '\1[FILTERED]')
       end
 
       private
@@ -198,8 +200,11 @@ module ActiveMerchant #:nodoc:
         post[:fraud_detection] ||= {}
         post[:fraud_detection][:sent_to_cs] = false
         post[:card_data][:last_four_digits] = options[:last_4]
+        post[:card_data][:security_code] = payment_method.verification_value if payment_method.verification_value?
 
         post[:token_card_data] = {
+          expiration_month: format(payment_method.month, :two_digits),
+          expiration_year: format(payment_method.year, :two_digits),
           token: payment_method.number,
           eci: payment_method.eci,
           cryptogram: payment_method.payment_cryptogram

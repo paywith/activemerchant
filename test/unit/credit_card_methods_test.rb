@@ -29,9 +29,10 @@ class CreditCardMethodsTest < Test::Unit::TestCase
     %w[500032 500057 501015 501016 501018 501020 501021 501023 501024 501025 501026 501027 501028 501029
        501038 501039 501040 501041 501043 501045 501047 501049 501051 501053 501054 501055 501056 501057
        501058 501060 501061 501062 501063 501066 501067 501072 501075 501083 501087 501623
-       501800 501089 501091 501092 501095 501104 501105 501107 501108 501500 501879
+       501800 501089 501091 501092 501095 501104 501105 501107 501108 501109 501500 501879
        502000 502113 502301 503175 503645 503800
        503670 504310 504338 504363 504533 504587 504620 504639 504656 504738 504781 504910
+       505616
        507001 507002 507004 507082 507090 560014 560565 561033 572402 572610 572626 576904 578614
        585274 585697 586509 588729 588792 589244 589300 589407 589471 589605 589633 589647 589671
        590043 590206 590263 590265
@@ -361,6 +362,8 @@ class CreditCardMethodsTest < Test::Unit::TestCase
     assert_equal 'naranja', CreditCard.brand?('5895627823453005')
     assert_equal 'naranja', CreditCard.brand?('5895620000000002')
     assert_equal 'naranja', CreditCard.brand?('5895626746595650')
+    assert_equal 'naranja', CreditCard.brand?('5895628637412581')
+    assert_equal 'naranja', CreditCard.brand?('5895627087232438')
   end
 
   # Alelo BINs beginning with the digit 4 overlap with Visa's range of valid card numbers.
@@ -444,9 +447,10 @@ class CreditCardMethodsTest < Test::Unit::TestCase
   end
 
   def test_matching_valid_naranja
-    number = '5895627823453005'
-    assert_equal 'naranja', CreditCard.brand?(number)
-    assert CreditCard.valid_number?(number)
+    %w[5895627823453005 5895627087232438 5895628637412581].each do |number|
+      assert_equal 'naranja', CreditCard.brand?(number)
+      assert CreditCard.valid_number?(number)
+    end
   end
 
   def test_matching_valid_creditel
@@ -566,6 +570,27 @@ class CreditCardMethodsTest < Test::Unit::TestCase
     assert_true CreditCard.valid_number?('5888001211111111')
     # numbers with invalid formats
     assert_false CreditCard.valid_number?('5888_0000_0000_0030')
+  end
+
+  def test_should_detect_uatp_card_brand
+    assert_equal 'uatp', CreditCard.brand?('117500000000000')
+    assert_equal 'uatp', CreditCard.brand?('117515279008103')
+    assert_equal 'uatp', CreditCard.brand?('129001000000000')
+  end
+
+  def test_should_validate_uatp_card
+    assert_true CreditCard.valid_number?('117515279008103')
+    assert_true CreditCard.valid_number?('116901000000000')
+    assert_true CreditCard.valid_number?('195724000000000')
+    assert_true CreditCard.valid_number?('192004000000000')
+    assert_true CreditCard.valid_number?('135410014004955')
+  end
+
+  def test_should_detect_invalid_uatp_card
+    assert_false CreditCard.valid_number?('117515279008104')
+    assert_false CreditCard.valid_number?('116901000000001')
+    assert_false CreditCard.valid_number?('195724000000001')
+    assert_false CreditCard.valid_number?('192004000000001')
   end
 
   def test_credit_card?

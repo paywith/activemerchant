@@ -18,6 +18,7 @@ class CyberSourceTest < Test::Unit::TestCase
     @master_credit_card = credit_card('4111111111111111', brand: 'master')
     @elo_credit_card = credit_card('5067310000000010', brand: 'elo')
     @declined_card = credit_card('801111111111111', brand: 'visa')
+    @carnet_card = credit_card('5062280000000000', brand: 'carnet')
     @network_token = network_tokenization_credit_card('4111111111111111',
                                                       brand: 'visa',
                                                       transaction_id: '123',
@@ -41,6 +42,12 @@ class CyberSourceTest < Test::Unit::TestCase
                                                   eci: '05',
                                                   payment_cryptogram: '111111111100cryptogram',
                                                   source: :apple_pay)
+    @apple_pay_discover = network_tokenization_credit_card('6011111111111117',
+                                                           brand: 'discover',
+                                                           transaction_id: '123',
+                                                           eci: '05',
+                                                           payment_cryptogram: '111111111100cryptogram',
+                                                           source: :apple_pay)
     @google_pay = network_tokenization_credit_card('4242424242424242', source: :google_pay)
     @check = check()
 
@@ -248,11 +255,15 @@ class CyberSourceTest < Test::Unit::TestCase
 
   def test_purchase_includes_invoice_header
     stub_comms do
-      @gateway.purchase(100, @credit_card, merchant_descriptor: 'Spreedly', reference_data_code: '3A', invoice_number: '1234567')
+      @gateway.purchase(100, @credit_card, merchant_descriptor: 'Spreedly', reference_data_code: '3A', invoice_number: '1234567', merchant_descriptor_city: 'test123', submerchant_id: 'AVSBSGDHJMNGFR', merchant_descriptor_country: 'US', merchant_descriptor_state: 'NY')
     end.check_request do |_endpoint, data, _headers|
       assert_match(/<merchantDescriptor>Spreedly<\/merchantDescriptor>/, data)
       assert_match(/<referenceDataCode>3A<\/referenceDataCode>/, data)
       assert_match(/<invoiceNumber>1234567<\/invoiceNumber>/, data)
+      assert_match(/<merchantDescriptorCity>test123<\/merchantDescriptorCity>/, data)
+      assert_match(/<submerchantID>AVSBSGDHJMNGFR<\/submerchantID>/, data)
+      assert_match(/<merchantDescriptorCountry>US<\/merchantDescriptorCountry>/, data)
+      assert_match(/<merchantDescriptorState>NY<\/merchantDescriptorState>/, data)
     end.respond_with(successful_purchase_response)
   end
 
@@ -555,6 +566,19 @@ class CyberSourceTest < Test::Unit::TestCase
       }
     })
     assert response = @gateway.purchase(@amount, credit_card, options)
+    assert_success response
+  end
+
+  def test_successful_apple_pay_purchase_subsequent_auth_discover
+    @gateway.expects(:ssl_post).with do |_host, request_body|
+      assert_match %r'<cavv>', request_body
+      assert_match %r'<commerceIndicator>internet</commerceIndicator>', request_body
+      true
+    end.returns(successful_purchase_response)
+
+    options = @options.merge(enable_cybs_discover_apple_pay: true)
+
+    assert response = @gateway.purchase(@amount, @apple_pay_discover, options)
     assert_success response
   end
 
@@ -1112,7 +1136,7 @@ class CyberSourceTest < Test::Unit::TestCase
     response = stub_comms do
       @gateway.authorize(@amount, @credit_card, @options)
     end.check_request do |_endpoint, data, _headers|
-      assert_not_match(/\<subsequentAuthFirst\>/, data)
+      assert_match(/\<subsequentAuthFirst\>/, data)
       assert_match(/\<subsequentAuthStoredCredential\>/, data)
       assert_not_match(/\<subsequentAuth\>/, data)
       assert_not_match(/\<subsequentAuthTransactionID\>/, data)
@@ -1293,7 +1317,7 @@ class CyberSourceTest < Test::Unit::TestCase
       assert_match(/\<networkTokenCryptogram\>111111111100cryptogram/, data)
       assert_match(/\<paymentSolution\>015/, data)
       assert_match(/\<transactionType\>3/, data)
-      assert_not_match(/\<subsequentAuthFirst\>true/, data)
+      assert_match(/\<subsequentAuthFirst\>true/, data)
       assert_match(/\<subsequentAuthStoredCredential\>true/, data)
       assert_not_match(/\<subsequentAuth\>true/, data)
       assert_not_match(/\<subsequentAuthTransactionID\>016150703802094/, data)
@@ -1316,7 +1340,7 @@ class CyberSourceTest < Test::Unit::TestCase
       assert_match(/\<paymentSolution\>015/, data)
       assert_match(/\<transactionType\>3/, data)
       assert_match(/\<subsequentAuthFirst\>true/, data)
-      assert_match(/\<commerceIndicator\>internet/, data)
+      assert_match(/\<commerceIndicator\>install/, data)
       assert_not_match(/\<subsequentAuthStoredCredential\>/, data)
       assert_not_match(/\<subsequentAuth\>true/, data)
       assert_not_match(/\<subsequentAuthTransactionID\>016150703802094/, data)
@@ -1342,7 +1366,7 @@ class CyberSourceTest < Test::Unit::TestCase
       assert_not_match(/\<subsequentAuthStoredCredential\>true/, data)
       assert_match(/\<subsequentAuth\>true/, data)
       assert_match(/\<subsequentAuthTransactionID\>016150703802094/, data)
-      assert_match(/\<commerceIndicator\>internet/, data)
+      assert_match(/\<commerceIndicator\>install/, data)
     end.respond_with(successful_authorization_response)
     assert response.success?
   end
@@ -1361,11 +1385,11 @@ class CyberSourceTest < Test::Unit::TestCase
       assert_match(/\<networkTokenCryptogram\>111111111100cryptogram/, data)
       assert_match(/\<paymentSolution\>015/, data)
       assert_match(/\<transactionType\>3/, data)
-      assert_not_match(/\<subsequentAuthFirst\>/, data)
+      assert_match(/\<subsequentAuthFirst\>/, data)
       assert_match(/\<subsequentAuthStoredCredential\>true/, data)
       assert_not_match(/\<subsequentAuth\>true/, data)
       assert_not_match(/\<subsequentAuthTransactionID\>016150703802094/, data)
-      assert_match(/\<commerceIndicator\>internet/, data)
+      assert_match(/\<commerceIndicator\>install/, data)
     end.respond_with(successful_authorization_response)
     assert response.success?
   end
@@ -1384,7 +1408,7 @@ class CyberSourceTest < Test::Unit::TestCase
       assert_match(/\<paymentSolution\>015/, data)
       assert_match(/\<transactionType\>3/, data)
       assert_match(/\<subsequentAuthFirst\>true/, data)
-      assert_match(/\<commerceIndicator\>internet/, data)
+      assert_match(/\<commerceIndicator\>recurring/, data)
       assert_not_match(/\<subsequentAuthStoredCredential\>/, data)
       assert_not_match(/\<subsequentAuth\>true/, data)
       assert_not_match(/\<subsequentAuthTransactionID\>016150703802094/, data)
@@ -1410,7 +1434,7 @@ class CyberSourceTest < Test::Unit::TestCase
       assert_not_match(/\<subsequentAuthStoredCredential\>true/, data)
       assert_match(/\<subsequentAuth\>true/, data)
       assert_match(/\<subsequentAuthTransactionID\>016150703802094/, data)
-      assert_match(/\<commerceIndicator\>internet/, data)
+      assert_match(/\<commerceIndicator\>recurring/, data)
     end.respond_with(successful_authorization_response)
     assert response.success?
   end
@@ -1429,11 +1453,11 @@ class CyberSourceTest < Test::Unit::TestCase
       assert_match(/\<networkTokenCryptogram\>111111111100cryptogram/, data)
       assert_match(/\<paymentSolution\>015/, data)
       assert_match(/\<transactionType\>3/, data)
-      assert_not_match(/\<subsequentAuthFirst\>/, data)
+      assert_match(/\<subsequentAuthFirst\>/, data)
       assert_match(/\<subsequentAuthStoredCredential\>true/, data)
       assert_not_match(/\<subsequentAuth\>true/, data)
       assert_not_match(/\<subsequentAuthTransactionID\>016150703802094/, data)
-      assert_match(/\<commerceIndicator\>internet/, data)
+      assert_match(/\<commerceIndicator\>recurring/, data)
     end.respond_with(successful_authorization_response)
     assert response.success?
   end
@@ -1987,6 +2011,14 @@ class CyberSourceTest < Test::Unit::TestCase
 
   def test_routing_number_formatting_with_canadian_routing_number_and_padding
     assert_equal @gateway.send(:format_routing_number, '012345678', { currency: 'CAD' }), '12345678'
+  end
+
+  def test_accurate_card_type_and_code_for_carnet
+    stub_comms do
+      @gateway.purchase(100, @carnet_card, @options)
+    end.check_request do |_endpoint, data, _headers|
+      assert_match(/<cardType>002<\/cardType>/, data)
+    end.respond_with(successful_purchase_response)
   end
 
   private

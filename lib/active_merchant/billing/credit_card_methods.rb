@@ -53,7 +53,8 @@ module ActiveMerchant #:nodoc:
         'hipercard' => ->(num) { num&.size == 16 && in_bin_range?(num.slice(0, 6), HIPERCARD_RANGES) },
         'panal' => ->(num) { num&.size == 16 && in_bin_range?(num.slice(0, 6), PANAL_RANGES) },
         'verve' => ->(num) { (16..19).cover?(num&.size) && in_bin_range?(num.slice(0, 6), VERVE_RANGES) },
-        'tuya' => ->(num) { num =~ /^588800\d{10}$/ }
+        'tuya' => ->(num) { num =~ /^588800\d{10}$/ },
+        'uatp' => ->(num) { num =~ /^(1175|1290)\d{11}$/ }
       }
 
       SODEXO_NO_LUHN = ->(num) { num =~ /^(505864|505865)\d{10}$/ }
@@ -127,6 +128,7 @@ module ActiveMerchant #:nodoc:
             501879 502113 502120 502121 502301
             503175 503337 503645 503670
             504310 504338 504363 504533 504587 504620 504639 504656 504738 504781 504910
+            505616
             507001 507002 507004 507082 507090
             560014 560565 561033
             572402 572610 572626
@@ -174,7 +176,7 @@ module ActiveMerchant #:nodoc:
         (501104..501105),
         (501107..501108),
         (501104..501105),
-        (501107..501108),
+        (501107..501109),
         (501800..501899),
         (502000..502099),
         (503800..503899),
@@ -462,7 +464,7 @@ module ActiveMerchant #:nodoc:
         def valid_by_algorithm?(brand, numbers) #:nodoc:
           case brand
           when 'naranja'
-            valid_naranja_algo?(numbers)
+            valid_naranja_algo?(numbers) || valid_luhn?(numbers)
           when 'creditel'
             valid_creditel_algo?(numbers)
           when 'alia', 'confiable', 'maestro_no_luhn', 'anda', 'tarjeta-d', 'hipercard'

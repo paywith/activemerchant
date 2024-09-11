@@ -243,6 +243,7 @@ module ActiveMerchant #:nodoc:
       def add_payment_fields(post, options)
         post[:description] = options[:description] if options[:description]
         post[:statement_descriptor] = options[:statement_descriptor] if options[:statement_descriptor]
+        post[:save_payment_method] = options[:save_payment_method] if options[:save_payment_method]
       end
 
       def add_payment_urls(post, options, action = '')
@@ -334,7 +335,7 @@ module ActiveMerchant #:nodoc:
         )
       rescue ActiveMerchant::ResponseError => e
         response = e.response.body.present? ? parse(e.response.body) : { 'status' => { 'response_code' => e.response.msg } }
-        message = response['status'].slice('message', 'response_code').values.compact_blank.first || ''
+        message = response['status'].slice('message', 'response_code').values.select(&:present?).first || ''
         Response.new(false, message, response, test: test?, error_code: error_code_from(response))
       end
 

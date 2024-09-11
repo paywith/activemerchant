@@ -144,16 +144,21 @@ module ActiveMerchant #:nodoc:
           exp_month = creditcard.month.to_s
           exp_year = creditcard.year.to_s
           expiration = "#{exp_month}/#{exp_year}"
+          zip = options[:billing_address].try(:[], :zip)
+          address1 = options[:billing_address].try(:[], :address1)
           payload = {
             credit_card: {
               number: creditcard.number,
               expiration_date: expiration,
-              cvv: creditcard.verification_value,
-              billing_address: {
-                postal_code: options[:billing_address][:zip]
-              }
+              cvv: creditcard.verification_value
             }
           }
+          if zip || address1
+            payload[:credit_card][:billing_address] = {}
+            payload[:credit_card][:billing_address][:postal_code] = zip if zip
+            payload[:credit_card][:billing_address][:street_address] = address1 if address1
+          end
+
           if merchant_account_id = (options[:merchant_account_id] || @merchant_account_id)
             payload[:options] = { merchant_account_id: merchant_account_id }
           end
@@ -565,14 +570,17 @@ module ActiveMerchant #:nodoc:
         transaction_params = create_transaction_parameters(money, credit_card_or_vault_id, options)
         commit do
           result = @braintree_gateway.transaction.send(transaction_type, transaction_params)
-          make_default_payment_method_token(result) if options.dig(:paypal, :paypal_flow_type) == 'checkout_with_vault' && result.success?
+          make_default_payment_method_token(result, options)
           response = Response.new(result.success?, message_from_transaction_result(result), response_params(result), response_options(result))
           response.cvv_result['message'] = ''
           response
         end
       end
 
-      def make_default_payment_method_token(result)
+      def make_default_payment_method_token(result, options)
+        return if options[:prevent_default_payment_method]
+        return unless options.dig(:paypal, :paypal_flow_type) == 'checkout_with_vault' && result.success?
+
         @braintree_gateway.customer.update(
           result.transaction.customer_details.id,
           default_payment_method_token: result.transaction.paypal_details.implicitly_vaulted_payment_method_token
@@ -680,7 +688,8 @@ module ActiveMerchant #:nodoc:
 
         paypal_details = {
           'payer_id'            => transaction.paypal_details.payer_id,
-          'payer_email'         => transaction.paypal_details.payer_email
+          'payer_email'         => transaction.paypal_details.payer_email,
+          'paypal_payment_token' => transaction.paypal_details.implicitly_vaulted_payment_method_token || transaction.paypal_details.token
         }
 
         if transaction.risk_data
@@ -813,7 +822,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_channel(parameters, options)
-        channel = @options[:channel] || application_id
+        channel = options[:override_application_id] || @options[:channel] || application_id
         parameters[:channel] = channel if channel
       end
 
@@ -913,19 +922,11 @@ module ActiveMerchant #:nodoc:
         # specifically requested. This will be the default behavior in a future release.
         return unless (stored_credential = options[:stored_credential])
 
-        add_external_vault(parameters, stored_credential)
-
-        if options[:stored_credentials_v2]
-          stored_credentials_v2(parameters, stored_credential)
-        else
-          stored_credentials_v1(parameters, stored_credential)
-        end
+        add_external_vault(parameters, options)
+        stored_credentials(parameters, stored_credential)
       end
 
-      def stored_credentials_v2(parameters, stored_credential)
-        # Differences between v1 and v2 are
-        # initial_transaction + recurring/installment should be labeled {{reason_type}}_first
-        # unscheduled in AM should map to '' at BT because unscheduled here means not on a fixed timeline or fixed amount
+      def stored_credentials(parameters, stored_credential)
         case stored_credential[:reason_type]
         when 'recurring', 'installment'
           if stored_credential[:initial_transaction]
@@ -942,27 +943,14 @@ module ActiveMerchant #:nodoc:
         end
       end
 
-      def stored_credentials_v1(parameters, stored_credential)
-        if stored_credential[:initiator] == 'merchant'
-          if stored_credential[:reason_type] == 'installment'
-            parameters[:transaction_source] = 'recurring'
-          else
-            parameters[:transaction_source] = stored_credential[:reason_type]
-          end
-        elsif %w(recurring_first moto).include?(stored_credential[:reason_type])
-          parameters[:transaction_source] = stored_credential[:reason_type]
-        else
-          parameters[:transaction_source] = ''
-        end
-      end
-
-      def add_external_vault(parameters, stored_credential)
+      def add_external_vault(parameters, options = {})
+        stored_credential = options[:stored_credential]
         parameters[:external_vault] = {}
         if stored_credential[:initial_transaction]
           parameters[:external_vault][:status] = 'will_vault'
         else
           parameters[:external_vault][:status] = 'vaulted'
-          parameters[:external_vault][:previous_network_transaction_id] = stored_credential[:network_transaction_id]
+          parameters[:external_vault][:previous_network_transaction_id] = options[:network_transaction_id] || stored_credential[:network_transaction_id]
         end
       end
 
@@ -1059,7 +1047,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_bank_account_to_customer(payment_method, options)
-        bank_account_nonce, error_message = TokenNonce.new(@braintree_gateway, options).create_token_nonce_for_payment_method payment_method
+        bank_account_nonce, error_message = TokenNonce.new(@braintree_gateway, options).create_token_nonce_for_payment_method(payment_method, options)
         return Response.new(false, error_message) unless bank_account_nonce.present?
 
         result = @braintree_gateway.payment_method.create(

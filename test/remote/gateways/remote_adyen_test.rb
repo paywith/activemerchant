@@ -287,7 +287,7 @@ class RemoteAdyenTest < Test::Unit::TestCase
   end
 
   def test_successful_authorize_with_network_token
-    response = @gateway.authorize(@amount, @nt_credit_card, @options)
+    response = @gateway.authorize(@amount, @nt_credit_card, @options.merge(switch_cryptogram_mapping_nt: true))
     assert_success response
     assert_equal 'Authorised', response.message
   end
@@ -562,7 +562,13 @@ class RemoteAdyenTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase_with_apple_pay
-    response = @gateway.purchase(@amount, @apple_pay_card, @options)
+    response = @gateway.purchase(@amount, @apple_pay_card, @options.merge(switch_cryptogram_mapping_nt: true))
+    assert_success response
+    assert_equal '[capture-received]', response.message
+  end
+
+  def test_successful_purchase_with_apple_pay_with_ld_flag_false
+    response = @gateway.purchase(@amount, @apple_pay_card, @options.merge(switch_cryptogram_mapping_nt: false))
     assert_success response
     assert_equal '[capture-received]', response.message
   end
@@ -580,13 +586,43 @@ class RemoteAdyenTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase_with_google_pay
-    response = @gateway.purchase(@amount, @google_pay_card, @options)
+    response = @gateway.purchase(@amount, @google_pay_card, @options.merge(switch_cryptogram_mapping_nt: true))
+    assert_success response
+    assert_equal '[capture-received]', response.message
+  end
+
+  def test_successful_purchase_with_google_pay_pan_only
+    response = @gateway.purchase(@amount, @credit_card, @options.merge(wallet_type: :google_pay))
+    assert_success response
+    assert_equal '[capture-received]', response.message
+  end
+
+  def test_successful_purchase_with_google_pay_without_billing_address_and_address_override
+    options = {
+      reference: '345123',
+      email: 'john.smith@test.com',
+      ip: '77.110.174.153',
+      shopper_reference: 'John Smith',
+      billing_address: {
+        address1: '',
+        address2: '',
+        country: 'US',
+        city: 'Beverly Hills',
+        state: 'CA',
+        zip: '90210'
+      },
+      order_id: '123',
+      stored_credential: { reason_type: 'unscheduled' },
+      address_override: true
+    }
+
+    response = @gateway.purchase(@amount, @google_pay_card, options)
     assert_success response
     assert_equal '[capture-received]', response.message
   end
 
   def test_successful_purchase_with_google_pay_and_truncate_order_id
-    response = @gateway.purchase(@amount, @google_pay_card, @options.merge(order_id: @long_order_id))
+    response = @gateway.purchase(@amount, @google_pay_card, @options.merge(order_id: @long_order_id, switch_cryptogram_mapping_nt: true))
     assert_success response
     assert_equal '[capture-received]', response.message
   end
@@ -610,7 +646,7 @@ class RemoteAdyenTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase_with_network_token
-    response = @gateway.purchase(@amount, @nt_credit_card, @options)
+    response = @gateway.purchase(@amount, @nt_credit_card, @options.merge(switch_cryptogram_mapping_nt: true))
     assert_success response
     assert_equal '[capture-received]', response.message
   end
@@ -1426,7 +1462,8 @@ class RemoteAdyenTest < Test::Unit::TestCase
     first_options = options.merge(
       order_id: generate_unique_id,
       shopper_interaction: 'Ecommerce',
-      recurring_processing_model: 'Subscription'
+      recurring_processing_model: 'Subscription',
+      switch_cryptogram_mapping_nt: true
     )
     assert auth = @gateway.authorize(@amount, @apple_pay_card, first_options)
     assert_success auth
@@ -1441,7 +1478,8 @@ class RemoteAdyenTest < Test::Unit::TestCase
       skip_mpi_data: 'Y',
       shopper_interaction: 'ContAuth',
       recurring_processing_model: 'Subscription',
-      network_transaction_id: auth.network_transaction_id
+      network_transaction_id: auth.network_transaction_id,
+      switch_cryptogram_mapping_nt: true
     )
 
     assert purchase = @gateway.purchase(@amount, @apple_pay_card, used_options)
@@ -1634,6 +1672,38 @@ class RemoteAdyenTest < Test::Unit::TestCase
         carrier_code: 'KL',
         class_of_travel: 'F'
       },
+      passenger: {
+        first_name: 'Joe',
+        last_name: 'Doe',
+        telephone_number: '432211111'
+      }
+    }
+
+    response = @gateway.purchase(@amount, @credit_card, @options.merge(additional_data_airline: airline_data))
+    assert_success response
+    assert_equal '[capture-received]', response.message
+  end
+
+  def test_succesful_purchase_with_airline_data_with_legs
+    airline_data = {
+      agency_invoice_number: 'BAC123',
+      agency_plan_name: 'plan name',
+      airline_code: '434234',
+      airline_designator_code: '1234',
+      boarding_fee: '100',
+      computerized_reservation_system: 'abcd',
+      customer_reference_number: 'asdf1234',
+      document_type: 'cc',
+      flight_date: '2023-09-08',
+      ticket_issue_address: 'abcqwer',
+      ticket_number: 'ABCASDF',
+      travel_agency_code: 'ASDF',
+      travel_agency_name: 'hopper',
+      passenger_name: 'Joe Doe',
+      legs: [{
+        carrier_code: 'KL',
+        class_of_travel: 'F'
+      }],
       passenger: {
         first_name: 'Joe',
         last_name: 'Doe',
