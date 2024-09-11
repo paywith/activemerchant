@@ -17,6 +17,7 @@ class CyberSourceRestTest < Test::Unit::TestCase
       year: 2031
     )
     @master_card = credit_card('2222420000001113', brand: 'master')
+    @carnet_card = credit_card('5062280000000000', brand: 'carnet')
 
     @visa_network_token = network_tokenization_credit_card(
       '4111111111111111',
@@ -76,6 +77,7 @@ class CyberSourceRestTest < Test::Unit::TestCase
       },
       email: 'test@cybs.com'
     }
+    @discover_card = credit_card('6011111111111117', brand: 'discover')
     @gmt_time = Time.now.httpdate
     @digest = 'SHA-256=gXWufV4Zc7VkN9Wkv9jh/JuAVclqDusx3vkyo3uJFWU='
     @resource = '/pts/v2/payments/'
@@ -218,6 +220,51 @@ class CyberSourceRestTest < Test::Unit::TestCase
     end.respond_with(successful_purchase_response)
   end
 
+  def test_authorize_network_token_visa_recurring
+    @options[:stored_credential] = stored_credential(:cardholder, :recurring)
+    stub_comms do
+      @gateway.authorize(100, @visa_network_token, @options)
+    end.check_request do |_endpoint, data, _headers|
+      request = JSON.parse(data)
+      assert_equal '001', request['paymentInformation']['tokenizedCard']['type']
+      assert_equal '3', request['paymentInformation']['tokenizedCard']['transactionType']
+      assert_equal 'EHuWW9PiBkWvqE5juRwDzAUFBAk=', request['paymentInformation']['tokenizedCard']['cryptogram']
+      assert_nil request['paymentInformation']['tokenizedCard']['requestorId']
+      assert_equal '015', request['processingInformation']['paymentSolution']
+      assert_equal 'recurring', request['processingInformation']['commerceIndicator']
+    end.respond_with(successful_purchase_response)
+  end
+
+  def test_authorize_network_token_visa_installment
+    @options[:stored_credential] = stored_credential(:cardholder, :installment)
+    stub_comms do
+      @gateway.authorize(100, @visa_network_token, @options)
+    end.check_request do |_endpoint, data, _headers|
+      request = JSON.parse(data)
+      assert_equal '001', request['paymentInformation']['tokenizedCard']['type']
+      assert_equal '3', request['paymentInformation']['tokenizedCard']['transactionType']
+      assert_equal 'EHuWW9PiBkWvqE5juRwDzAUFBAk=', request['paymentInformation']['tokenizedCard']['cryptogram']
+      assert_nil request['paymentInformation']['tokenizedCard']['requestorId']
+      assert_equal '015', request['processingInformation']['paymentSolution']
+      assert_equal 'install', request['processingInformation']['commerceIndicator']
+    end.respond_with(successful_purchase_response)
+  end
+
+  def test_authorize_network_token_visa_unscheduled
+    @options[:stored_credential] = stored_credential(:cardholder, :unscheduled)
+    stub_comms do
+      @gateway.authorize(100, @visa_network_token, @options)
+    end.check_request do |_endpoint, data, _headers|
+      request = JSON.parse(data)
+      assert_equal '001', request['paymentInformation']['tokenizedCard']['type']
+      assert_equal '3', request['paymentInformation']['tokenizedCard']['transactionType']
+      assert_equal 'EHuWW9PiBkWvqE5juRwDzAUFBAk=', request['paymentInformation']['tokenizedCard']['cryptogram']
+      assert_nil request['paymentInformation']['tokenizedCard']['requestorId']
+      assert_equal '015', request['processingInformation']['paymentSolution']
+      assert_equal 'internet', request['processingInformation']['commerceIndicator']
+    end.respond_with(successful_purchase_response)
+  end
+
   def test_authorize_network_token_mastercard
     stub_comms do
       @gateway.authorize(100, @mastercard_network_token, @options)
@@ -302,7 +349,6 @@ class CyberSourceRestTest < Test::Unit::TestCase
       request = JSON.parse(data)
       assert_equal 'recurring', request['processingInformation']['commerceIndicator']
       assert_equal 'customer', request.dig('processingInformation', 'authorizationOptions', 'initiator', 'type')
-      assert_equal true, request.dig('processingInformation', 'authorizationOptions', 'initiator', 'merchantInitiatedTransaction', 'storedCredentialUsed')
     end.respond_with(successful_purchase_response)
 
     assert_success response
@@ -316,7 +362,8 @@ class CyberSourceRestTest < Test::Unit::TestCase
       request = JSON.parse(data)
       assert_equal 'recurring', request['processingInformation']['commerceIndicator']
       assert_equal 'merchant', request.dig('processingInformation', 'authorizationOptions', 'initiator', 'type')
-      assert_equal true, request.dig('processingInformation', 'authorizationOptions', 'initiator', 'merchantInitiatedTransaction', 'storedCredentialUsed')
+      assert_equal true, request.dig('processingInformation', 'authorizationOptions', 'initiator', 'storedCredentialUsed')
+      assert_nil request.dig('processingInformation', 'authorizationOptions', 'initiator', 'merchantInitiatedTransaction', 'originalAuthorizedAmount')
     end.respond_with(successful_purchase_response)
 
     assert_success response
@@ -489,6 +536,64 @@ class CyberSourceRestTest < Test::Unit::TestCase
     end.respond_with(successful_purchase_response)
   ensure
     CyberSourceRestGateway.application_id = nil
+  end
+
+  def test_purchase_with_level_2_data
+    stub_comms do
+      @gateway.authorize(100, @credit_card, @options.merge({ purchase_order_number: '13829012412' }))
+    end.check_request do |_endpoint, data, _headers|
+      request = JSON.parse(data)
+      assert_equal '13829012412', request['orderInformation']['invoiceDetails']['purchaseOrderNumber']
+    end.respond_with(successful_purchase_response)
+  end
+
+  def test_purchase_with_level_3_data
+    options = {
+      purchase_order_number: '6789',
+      discount_amount: '150',
+      ships_from_postal_code: '90210',
+      line_items: [
+        {
+          productName: 'Product Name',
+          kind: 'debit',
+          quantity: 10,
+          unitPrice: '9.5000',
+          totalAmount: '95.00',
+          taxAmount: '5.00',
+          discountAmount: '0.00',
+          productCode: '54321',
+          commodityCode: '98765'
+        },
+        {
+          productName: 'Other Product Name',
+          kind: 'debit',
+          quantity: 1,
+          unitPrice: '2.5000',
+          totalAmount: '90.00',
+          taxAmount: '2.00',
+          discountAmount: '1.00',
+          productCode: '54322',
+          commodityCode: '98766'
+        }
+      ]
+    }
+    stub_comms do
+      @gateway.authorize(100, @credit_card, @options.merge(options))
+    end.check_request do |_endpoint, data, _headers|
+      request = JSON.parse(data)
+      assert_equal '3', request['processingInformation']['purchaseLevel']
+      assert_equal '150', request['orderInformation']['amountDetails']['discountAmount']
+      assert_equal '90210', request['orderInformation']['shipping_details']['shipFromPostalCode']
+    end.respond_with(successful_purchase_response)
+  end
+
+  def test_accurate_card_type_and_code_for_carnet
+    stub_comms do
+      @gateway.purchase(100, @carnet_card, @options)
+    end.check_request do |_endpoint, data, _headers|
+      request = JSON.parse(data)
+      assert_equal '002', request['paymentInformation']['card']['type']
+    end.respond_with(successful_purchase_response)
   end
 
   private

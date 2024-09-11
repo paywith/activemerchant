@@ -63,6 +63,15 @@ class AdyenTest < Test::Unit::TestCase
       verification_value: nil
     )
 
+    @google_pay_card = network_tokenization_credit_card(
+      '4761209980011439',
+      payment_cryptogram: 'YwAAAAAABaYcCMX/OhNRQAAAAAA=',
+      month: '11',
+      year: '2022',
+      source: :google_pay,
+      verification_value: nil
+    )
+
     @nt_credit_card = network_tokenization_credit_card(
       '4895370015293175',
       brand: 'visa',
@@ -262,6 +271,16 @@ class AdyenTest < Test::Unit::TestCase
     assert_failure response
   end
 
+  def test_failure_authorize_with_transient_error
+    @gateway.instance_variable_set(:@response_headers, { 'transient-error' => 'error_will_robinson' })
+    @gateway.expects(:ssl_post).returns(failed_authorize_response)
+
+    response = @gateway.authorize(@amount, @credit_card, @options)
+    assert_failure response
+    assert response.params['response_headers']['transient_error'], 'error_will_robinson'
+    assert response.test?
+  end
+
   def test_standard_error_code_mapping
     @gateway.expects(:ssl_post).returns(failed_billing_field_response)
 
@@ -350,6 +369,16 @@ class AdyenTest < Test::Unit::TestCase
     response = @gateway.send(:commit, 'authorise', {}, {})
 
     assert_equal 'Refused | 01: Refer to card issuer', response.message
+    assert_equal '01', response.error_code
+    assert_failure response
+  end
+
+  def test_failed_fraud_raw_refusal
+    @gateway.expects(:ssl_post).returns(failed_fraud_visa_response)
+
+    response = @gateway.send(:commit, 'authorise', {}, {})
+
+    assert_equal 'N7', response.error_code
     assert_failure response
   end
 
@@ -359,15 +388,7 @@ class AdyenTest < Test::Unit::TestCase
     response = @gateway.send(:commit, 'authorise', {}, {})
 
     assert_equal 'Refused | 01 : New account information available', response.message
-    assert_failure response
-  end
-
-  def test_failed_authorise_mastercard_raw_error_message
-    @gateway.expects(:ssl_post).returns(failed_authorize_mastercard_response)
-
-    response = @gateway.send(:commit, 'authorise', {}, { raw_error_message: true })
-
-    assert_equal 'Refused | 01: Refer to card issuer', response.message
+    assert_equal '01', response.error_code
     assert_failure response
   end
 
@@ -521,6 +542,24 @@ class AdyenTest < Test::Unit::TestCase
     end.respond_with(successful_authorize_response)
   end
 
+  def test_splits_sent_without_amount
+    split_data = [{
+      'type' => 'MarketPlace',
+      'account' => '163298747',
+      'reference' => 'QXhlbFN0b2x0ZW5iZXJnCg'
+    }, {
+      'type' => 'Commission',
+      'reference' => 'THVjYXNCbGVkc29lCg'
+    }]
+
+    options = @options.merge({ splits: split_data })
+    stub_comms do
+      @gateway.authorize(@amount, @credit_card, options)
+    end.check_request do |_endpoint, data, _headers|
+      assert_equal split_data, JSON.parse(data)['splits']
+    end.respond_with(successful_authorize_response)
+  end
+
   def test_execute_threed_false_with_additional_data
     stub_comms do
       @gateway.authorize(@amount, @credit_card, @options.merge({ execute_threed: false, overwrite_brand: true, selected_brand: 'maestro' }))
@@ -647,7 +686,7 @@ class AdyenTest < Test::Unit::TestCase
     response = stub_comms do
       @gateway.authorize(@amount, @credit_card, options)
     end.check_request do |_endpoint, data, _headers|
-      assert_match(/"shopperInteraction":"ContAuth"/, data)
+      assert_match(/"shopperInteraction":"Ecommerce"/, data)
       assert_match(/"recurringProcessingModel":"Subscription"/, data)
     end.respond_with(successful_authorize_response)
 
@@ -697,7 +736,7 @@ class AdyenTest < Test::Unit::TestCase
     response = stub_comms do
       @gateway.authorize(@amount, @credit_card, options)
     end.check_request do |_endpoint, data, _headers|
-      assert_match(/"shopperInteraction":"ContAuth"/, data)
+      assert_match(/"shopperInteraction":"Ecommerce"/, data)
       assert_match(/"recurringProcessingModel":"UnscheduledCardOnFile"/, data)
     end.respond_with(successful_authorize_response)
 
@@ -1211,12 +1250,76 @@ class AdyenTest < Test::Unit::TestCase
 
   def test_authorize_with_network_tokenization_credit_card
     response = stub_comms do
-      @gateway.authorize(@amount, @apple_pay_card, @options)
+      @gateway.authorize(@amount, @apple_pay_card, @options.merge(switch_cryptogram_mapping_nt: false))
     end.check_request do |_endpoint, data, _headers|
       parsed = JSON.parse(data)
       assert_equal 'YwAAAAAABaYcCMX/OhNRQAAAAAA=', parsed['mpiData']['cavv']
       assert_equal '07', parsed['mpiData']['eci']
       assert_equal 'applepay', parsed['additionalData']['paymentdatasource.type']
+    end.respond_with(successful_authorize_response)
+    assert_success response
+  end
+
+  def test_authorize_with_google_pay
+    response = stub_comms do
+      @gateway.authorize(@amount, @google_pay_card, @options.merge(selected_brand: 'visa'))
+    end.check_request do |_endpoint, data, _headers|
+      parsed = JSON.parse(data)
+      assert_equal @google_pay_card.payment_cryptogram, parsed['mpiData']['cavv']
+      assert_equal '07', parsed['mpiData']['eci']
+      assert_equal 'googlepay', parsed['additionalData']['paymentdatasource.type']
+      assert_equal 'googlepay', parsed['selectedBrand']
+      assert_equal 'true', parsed['additionalData']['paymentdatasource.tokenized']
+    end.respond_with(successful_authorize_response)
+    assert_success response
+  end
+
+  def test_authorize_with_google_pay_pan_only
+    response = stub_comms do
+      @gateway.authorize(@amount, @credit_card, @options.merge(wallet_type: :google_pay))
+    end.check_request do |_endpoint, data, _headers|
+      parsed = JSON.parse(data)
+      assert_equal 'googlepay', parsed['additionalData']['paymentdatasource.type']
+      assert_equal 'googlepay', parsed['selectedBrand']
+      assert_equal 'false', parsed['additionalData']['paymentdatasource.tokenized']
+    end.respond_with(successful_authorize_response)
+    assert_success response
+  end
+
+  def test_authorize_with_network_tokenization_credit_card_using_ld_option
+    response = stub_comms do
+      @gateway.authorize(@amount, @apple_pay_card, @options.merge(switch_cryptogram_mapping_nt: true))
+    end.check_request do |_endpoint, data, _headers|
+      parsed = JSON.parse(data)
+      assert_equal 'YwAAAAAABaYcCMX/OhNRQAAAAAA=', parsed['mpiData']['cavv']
+      assert_equal '07', parsed['mpiData']['eci']
+      assert_equal 'applepay', parsed['additionalData']['paymentdatasource.type']
+    end.respond_with(successful_authorize_response)
+    assert_success response
+  end
+
+  def test_authorize_with_network_tokenization_credit_card_no_apple_no_google
+    response = stub_comms do
+      @gateway.authorize(@amount, @nt_credit_card, @options.merge(switch_cryptogram_mapping_nt: true))
+    end.check_request do |_endpoint, data, _headers|
+      parsed = JSON.parse(data)
+      assert_equal 'EHuWW9PiBkWvqE5juRwDzAUFBAk=', parsed['mpiData']['tokenAuthenticationVerificationValue']
+      assert_equal '07', parsed['mpiData']['eci']
+      assert_nil parsed['additionalData']['paymentdatasource.type']
+      assert_equal 'VISATOKENSERVICE', parsed['recurring']['tokenService']
+      assert_equal 'EXTERNAL', parsed['recurring']['contract']
+    end.respond_with(successful_authorize_response)
+    assert_success response
+  end
+
+  def test_authorize_with_network_tokenization_credit_card_and_stored_credentials
+    stored_credential = stored_credential(:merchant, :recurring)
+    response = stub_comms do
+      @gateway.authorize(@amount, @nt_credit_card, @options.merge(switch_cryptogram_mapping_nt: true, stored_credential: stored_credential))
+    end.check_request do |_endpoint, data, _headers|
+      parsed = JSON.parse(data)
+      assert_equal 'ContAuth', parsed['shopperInteraction']
+      assert_nil parsed['mpiData']
     end.respond_with(successful_authorize_response)
     assert_success response
   end
@@ -1489,6 +1592,62 @@ class AdyenTest < Test::Unit::TestCase
       assert_equal additional_data['airline.passenger_name'], airline_data[:passenger_name]
       assert_equal additional_data['airline.leg.carrier_code'], airline_data[:leg][:carrier_code]
       assert_equal additional_data['airline.leg.class_of_travel'], airline_data[:leg][:class_of_travel]
+      assert_equal additional_data['airline.passenger.first_name'], airline_data[:passenger][:first_name]
+      assert_equal additional_data['airline.passenger.last_name'], airline_data[:passenger][:last_name]
+      assert_equal additional_data['airline.passenger.telephone_number'], airline_data[:passenger][:telephone_number]
+    end.respond_with(successful_authorize_response)
+    assert_success response
+  end
+
+  def test_succesful_additional_airline_data_with_legs
+    airline_data = {
+      agency_invoice_number: 'BAC123',
+      agency_plan_name: 'plan name',
+      airline_code: '434234',
+      airline_designator_code: '1234',
+      boarding_fee: '100',
+      computerized_reservation_system: 'abcd',
+      customer_reference_number: 'asdf1234',
+      document_type: 'cc',
+      legs: [
+        {
+          carrier_code: 'KL',
+          date_of_travel: '2024-10-10'
+        },
+        {
+          carrier_code: 'KL',
+          date_of_travel: '2024-10-11'
+        }
+      ],
+      passenger: {
+        first_name: 'Joe',
+        last_name: 'Doe'
+      }
+    }
+
+    response = stub_comms do
+      @gateway.authorize(@amount, @credit_card, @options.merge(additional_data_airline: airline_data))
+    end.check_request do |_endpoint, data, _headers|
+      parsed = JSON.parse(data)
+      additional_data = parsed['additionalData']
+      assert_equal additional_data['airline.agency_invoice_number'], airline_data[:agency_invoice_number]
+      assert_equal additional_data['airline.agency_plan_name'], airline_data[:agency_plan_name]
+      assert_equal additional_data['airline.airline_code'], airline_data[:airline_code]
+      assert_equal additional_data['airline.airline_designator_code'], airline_data[:airline_designator_code]
+      assert_equal additional_data['airline.boarding_fee'], airline_data[:boarding_fee]
+      assert_equal additional_data['airline.computerized_reservation_system'], airline_data[:computerized_reservation_system]
+      assert_equal additional_data['airline.customer_reference_number'], airline_data[:customer_reference_number]
+      assert_equal additional_data['airline.document_type'], airline_data[:document_type]
+      assert_equal additional_data['airline.flight_date'], airline_data[:flight_date]
+      assert_equal additional_data['airline.ticket_issue_address'], airline_data[:abcqwer]
+      assert_equal additional_data['airline.ticket_number'], airline_data[:ticket_number]
+      assert_equal additional_data['airline.travel_agency_code'], airline_data[:travel_agency_code]
+      assert_equal additional_data['airline.travel_agency_name'], airline_data[:travel_agency_name]
+      assert_equal additional_data['airline.passenger_name'], airline_data[:passenger_name]
+      assert_equal additional_data['airline.leg1.carrier_code'], airline_data[:legs][0][:carrier_code]
+      assert_equal additional_data['airline.leg1.date_of_travel'], airline_data[:legs][0][:date_of_travel]
+      assert_equal additional_data['airline.leg2.carrier_code'], airline_data[:legs][1][:carrier_code]
+      assert_equal additional_data['airline.leg2.date_of_travel'], airline_data[:legs][1][:date_of_travel]
       assert_equal additional_data['airline.passenger.first_name'], airline_data[:passenger][:first_name]
       assert_equal additional_data['airline.passenger.last_name'], airline_data[:passenger][:last_name]
       assert_equal additional_data['airline.passenger.telephone_number'], airline_data[:passenger][:telephone_number]
@@ -1908,6 +2067,20 @@ class AdyenTest < Test::Unit::TestCase
       "additionalData":
       {
         "refusalReasonRaw": "01: Refer to card issuer"
+       },
+       "refusalReason": "Refused",
+       "pspReference":"8514775559925128",
+       "resultCode":"Refused"
+     }
+    RESPONSE
+  end
+
+  def failed_fraud_visa_response
+    <<-RESPONSE
+    {
+      "additionalData":
+      {
+        "refusalReasonRaw": "N7 : FRAUD"
        },
        "refusalReason": "Refused",
        "pspReference":"8514775559925128",

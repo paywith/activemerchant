@@ -24,7 +24,10 @@ class FlexChargeTest < Test::Unit::TestCase
       cvv_result_code: '111',
       cavv_result_code: '111',
       timezone_utc_offset: '-5',
-      billing_address: address.merge(name: 'Cure Tester')
+      billing_address: address.merge(name: 'Cure Tester'),
+      shipping_address: address.merge(name: 'Jhon Doe', country: 'US'),
+      sense_key: 'abc123',
+      extra_data: { hello: 'world' }.to_json
     }
 
     @cit_options = {
@@ -90,9 +93,9 @@ class FlexChargeTest < Test::Unit::TestCase
   end
 
   def test_successful_purchase
-    response = stub_comms do
+    response = stub_comms(@gateway, :ssl_request) do
       @gateway.purchase(@amount, @credit_card, @options)
-    end.check_request do |endpoint, data, headers|
+    end.check_request do |_method, endpoint, data, headers|
       request = JSON.parse(data)
       if /token/.match?(endpoint)
         assert_equal request['AppKey'], @gateway.options[:app_key]
@@ -106,6 +109,9 @@ class FlexChargeTest < Test::Unit::TestCase
         assert_equal request['isDeclined'], @options[:is_declined]
         assert_equal request['orderId'], @options[:order_id]
         assert_equal request['idempotencyKey'], @options[:idempotency_key]
+        assert_equal request['senseKey'], 'abc123'
+        assert_equal request['Source'], 'Spreedly'
+        assert_equal request['ExtraData'], { hello: 'world' }.to_json
         assert_equal request['transaction']['timezoneUtcOffset'], @options[:timezone_utc_offset]
         assert_equal request['transaction']['amount'], @amount
         assert_equal request['transaction']['responseCode'], @options[:response_code]
@@ -113,30 +119,45 @@ class FlexChargeTest < Test::Unit::TestCase
         assert_equal request['transaction']['avsResultCode'], @options[:avs_result_code]
         assert_equal request['transaction']['cvvResultCode'], @options[:cvv_result_code]
         assert_equal request['transaction']['cavvResultCode'], @options[:cavv_result_code]
+        assert_equal request['transactionType'], 'Purchase'
         assert_equal request['payer']['email'], @options[:email]
         assert_equal request['description'], @options[:description]
+
+        assert_equal request['billingInformation']['firstName'], 'Cure'
+        assert_equal request['billingInformation']['country'], 'CA'
+        assert_equal request['shippingInformation']['firstName'], 'Jhon'
+        assert_equal request['shippingInformation']['country'], 'US'
       end
     end.respond_with(successful_access_token_response, successful_purchase_response)
 
     assert_success response
 
-    assert_equal 'ca7bb327-a750-412d-a9c3-050d72b3f0c5', response.authorization
+    assert_equal 'ca7bb327-a750-412d-a9c3-050d72b3f0c5#USD', response.authorization
     assert response.test?
   end
 
+  def test_successful_authorization
+    stub_comms(@gateway, :ssl_request) do
+      @gateway.authorize(@amount, @credit_card, @options)
+    end.check_request do |_method, endpoint, data, _headers|
+      request = JSON.parse(data)
+      assert_equal request['transactionType'], 'Authorization' if /evaluate/.match?(endpoint)
+    end.respond_with(successful_access_token_response, successful_purchase_response)
+  end
+
   def test_successful_purchase_three_ds_global
-    response = stub_comms do
+    response = stub_comms(@gateway, :ssl_request) do
       @gateway.purchase(@amount, @credit_card, @three_d_secure_options)
     end.respond_with(successful_access_token_response, successful_purchase_response)
     assert_success response
-    assert_equal 'ca7bb327-a750-412d-a9c3-050d72b3f0c5', response.authorization
+    assert_equal 'ca7bb327-a750-412d-a9c3-050d72b3f0c5#USD', response.authorization
     assert response.test?
   end
 
   def test_succeful_request_with_three_ds_global
-    stub_comms do
+    stub_comms(@gateway, :ssl_request) do
       @gateway.purchase(@amount, @credit_card, @three_d_secure_options)
-    end.check_request do |endpoint, data, _headers|
+    end.check_request do |_method, endpoint, data, _headers|
       if /evaluate/.match?(endpoint)
         request = JSON.parse(data)
         assert_equal request['threeDSecure']['EcommerceIndicator'], @three_d_secure_options[:three_d_secure][:eci]
@@ -153,7 +174,7 @@ class FlexChargeTest < Test::Unit::TestCase
   end
 
   def test_failed_purchase
-    response = stub_comms do
+    response = stub_comms(@gateway, :ssl_request) do
       @gateway.purchase(@amount, @credit_card, @options)
     end.respond_with(successful_access_token_response, failed_purchase_response)
 
@@ -162,10 +183,31 @@ class FlexChargeTest < Test::Unit::TestCase
     assert_equal '400', response.message
   end
 
+  def test_purchase_using_card_with_no_number
+    credit_card_with_no_number = credit_card
+    credit_card_with_no_number.number = nil
+
+    response = stub_comms(@gateway, :ssl_request) do
+      @gateway.purchase(@amount, credit_card_with_no_number, @options)
+    end.respond_with(successful_access_token_response, successful_purchase_response)
+
+    assert_success response
+  end
+
+  def test_successful_purchase_with_token
+    payment = 'bb114473-43fc-46c4-9082-ea3dfb490509'
+
+    response = stub_comms(@gateway, :ssl_request) do
+      @gateway.purchase(@amount, payment, @options)
+    end.respond_with(successful_access_token_response, successful_purchase_response)
+
+    assert_success response
+  end
+
   def test_failed_refund
-    response = stub_comms do
+    response = stub_comms(@gateway, :ssl_request) do
       @gateway.refund(@amount, 'reference', @options)
-    end.check_request do |endpoint, data, _headers|
+    end.check_request do |_method, endpoint, data, _headers|
       request = JSON.parse(data)
 
       if /token/.match?(endpoint)
@@ -180,27 +222,55 @@ class FlexChargeTest < Test::Unit::TestCase
     assert response.test?
   end
 
+  def test_failed_purchase_idempotency_key
+    response = stub_comms(@gateway, :ssl_request) do
+      @gateway.purchase(@amount, @credit_card, @options)
+    end.respond_with(successful_access_token_response, missed_idempotency_key_field)
+
+    assert_failure response
+    assert_nil response.error_code
+    assert_equal '{"IdempotencyKey":["The IdempotencyKey field is required."]}', response.message
+  end
+
+  def test_failed_purchase_expiry_date
+    response = stub_comms(@gateway, :ssl_request) do
+      @gateway.purchase(@amount, @credit_card, @options)
+    end.respond_with(successful_access_token_response, invalid_expiry_date_utc)
+
+    assert_failure response
+    assert_nil response.error_code
+    assert_equal '{"ExpiryDateUtc":["The field ExpiryDateUtc is invalid."]}', response.message
+  end
+
   def test_scrub
     assert @gateway.supports_scrubbing?
     assert_equal @gateway.scrub(pre_scrubbed), post_scrubbed
   end
 
   def test_address_names_from_address
-    names = @gateway.send(:address_names, @options[:billing_address][:name], @credit_card)
+    names = @gateway.send(:names_from_address, @options[:billing_address], @credit_card)
 
     assert_equal 'Cure', names.first
     assert_equal 'Tester', names.last
   end
 
   def test_address_names_from_credit_card
-    names = @gateway.send(:address_names, 'Doe', @credit_card)
+    @options.delete(:billing_address)
+    names = @gateway.send(:names_from_address, {}, @credit_card)
 
     assert_equal 'Longbob', names.first
-    assert_equal 'Doe', names.last
+    assert_equal 'Longsen', names.last
+  end
+
+  def test_address_names_when_passing_string_token
+    names = @gateway.send(:names_from_address, @options[:billing_address], SecureRandom.uuid)
+
+    assert_equal 'Cure', names.first
+    assert_equal 'Tester', names.last
   end
 
   def test_successful_store
-    response = stub_comms do
+    response = stub_comms(@gateway, :ssl_request) do
       @gateway.store(@credit_card, @options)
     end.respond_with(successful_access_token_response, successful_store_response)
 
@@ -210,12 +280,50 @@ class FlexChargeTest < Test::Unit::TestCase
 
   def test_successful_inquire_request
     session_id = 'f8da8dc7-17de-4b5e-858d-4bdc47cd5dbf'
-    stub_comms do
+    stub_comms(@gateway, :ssl_request) do
       @gateway.inquire(session_id, {})
-    end.check_request do |endpoint, data, _headers|
+    end.check_request do |_method, endpoint, data, _headers|
       request = JSON.parse(data)
       assert_equal request['orderSessionKey'], session_id if /outcome/.match?(endpoint)
     end.respond_with(successful_access_token_response, successful_purchase_response)
+  end
+
+  def test_address_when_billing_address_provided
+    address = @gateway.send(:address, @options)
+    assert_equal 'CA', address[:country]
+  end
+
+  def test_address_when_address_is_provided_in_options
+    @options.delete(:billing_address)
+    @options[:address] = { country: 'US' }
+    address = @gateway.send(:address, @options)
+    assert_equal 'US', address[:country]
+  end
+
+  def test_authorization_from_on_store
+    response = stub_comms(@gateway, :ssl_request) do
+      @gateway.store(@credit_card, @options)
+    end.respond_with(successful_access_token_response, successful_store_response)
+
+    assert_success response
+    assert_equal 'd3e10716-6aac-4eb8-a74d-c1a3027f1d96', response.authorization
+  end
+
+  def test_authorization_from_on_purchase
+    response = stub_comms(@gateway, :ssl_request) do
+      @gateway.purchase(@amount, @credit_card, @options)
+    end.respond_with(successful_access_token_response, successful_purchase_response)
+
+    assert_success response
+    assert_equal 'ca7bb327-a750-412d-a9c3-050d72b3f0c5#USD', response.authorization
+  end
+
+  def test_add_base_data_without_idempotency_key
+    @options.delete(:idempotency_key)
+    post = {}
+    @gateway.send(:add_base_data, post, @options)
+
+    assert_equal 5, post[:idempotencyKey].split('-').size
   end
 
   private
@@ -532,6 +640,28 @@ class FlexChargeTest < Test::Unit::TestCase
           }
         ],
         "customProperties": {}
+      }
+    RESPONSE
+  end
+
+  def missed_idempotency_key_field
+    <<~RESPONSE
+      {
+        "TraceId": ["00-bf5a1XXXTRACEXXX174b8a-f58XXXIDXXX32-01"],
+        "IdempotencyKey": ["The IdempotencyKey field is required."],
+        "access_token": "SomeAccessTokenXXXX1ZWE5ZmY0LTM4MjUtNDc0ZC04ZDhhLTk2OGZjM2NlYTA5ZCIsImlhdCI6IjE3MjI1Mjc1ODI1MjIiLCJhdWQiOlsicGF5bWVudHMiLCJvcmRlcnMiLCJtZXJjaGFudHMiLCJlbGlnaWJpbGl0eS1zZnRwIiwiZWxpZ2liaWxpdHkiLCJjb250YWN0Il0sImN1c3RvbTptaWQiOiJkOWQwYjVmZC05NDMzLTQ0ZDMtODA1MS02M2ZlZTI4NzY4ZTgiLCJuYmYiOjE3MjI1Mjc1ODIsImV4cCI6MTcyMjUyODE4MiwiaXNzIjoiQXBpLUNsaWVudC1TZXJ2aWNlIn0.Q7b5CViX4x3Qmna-JmLS2pQD8kWbrI5-GLLT1Ki9t3o",
+        "token_expires": 1722528182522
+      }
+    RESPONSE
+  end
+
+  def invalid_expiry_date_utc
+    <<~RESPONSE
+      {
+        "TraceId": ["00-bf5a1XXXTRACEXXX174b8a-f58XXXIDXXX32-01"],
+        "ExpiryDateUtc":["The field ExpiryDateUtc is invalid."],
+        "access_token": "SomeAccessTokenXXXX1ZWE5ZmY0LTM4MjUtNDc0ZC04ZDhhLTk2OGZjM2NlYTA5ZCIsImlhdCI6IjE3MjI1Mjc1ODI1MjIiLCJhdWQiOlsicGF5bWVudHMiLCJvcmRlcnMiLCJtZXJjaGFudHMiLCJlbGlnaWJpbGl0eS1zZnRwIiwiZWxpZ2liaWxpdHkiLCJjb250YWN0Il0sImN1c3RvbTptaWQiOiJkOWQwYjVmZC05NDMzLTQ0ZDMtODA1MS02M2ZlZTI4NzY4ZTgiLCJuYmYiOjE3MjI1Mjc1ODIsImV4cCI6MTcyMjUyODE4MiwiaXNzIjoiQXBpLUNsaWVudC1TZXJ2aWNlIn0.Q7b5CViX4x3Qmna-JmLS2pQD8kWbrI5-GLLT1Ki9t3o",
+        "token_expires": 1722528182522
       }
     RESPONSE
   end

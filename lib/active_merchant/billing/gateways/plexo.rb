@@ -92,7 +92,8 @@ module ActiveMerchant #:nodoc:
           gsub(%r(("Number\\?"\s*:\s*\\?")[^"]*)i, '\1[FILTERED]').
           gsub(%r(("Cvc\\?"\s*:\s*\\?")[^"]*)i, '\1[FILTERED]').
           gsub(%r(("InvoiceNumber\\?"\s*:\s*\\?")[^"]*)i, '\1[FILTERED]').
-          gsub(%r(("MerchantId\\?"\s*:\s*\\?")[^"]*)i, '\1[FILTERED]')
+          gsub(%r(("MerchantId\\?"\s*:\s*\\?")[^"]*)i, '\1[FILTERED]').
+          gsub(%r(("Cryptogram\\?"\s*:\s*\\?")[^"]*)i, '\1[FILTERED]')
       end
 
       private
@@ -195,17 +196,37 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_payment_method(post, payment, options)
-        post[:paymentMethod] = {}
+        payment_method = build_payment_method(payment)
 
-        if payment&.is_a?(CreditCard)
-          post[:paymentMethod][:type] = 'card'
-          post[:paymentMethod][:Card] = {}
-          post[:paymentMethod][:Card][:Number] = payment.number
-          post[:paymentMethod][:Card][:ExpMonth] = format(payment.month, :two_digits) if payment.month
-          post[:paymentMethod][:Card][:ExpYear] = format(payment.year, :two_digits) if payment.year
-          post[:paymentMethod][:Card][:Cvc] = payment.verification_value if payment.verification_value
+        if payment_method.present?
+          add_card_holder(payment_method[:NetworkToken] || payment_method[:Card], payment, options)
+          post[:paymentMethod] = payment_method
+        end
+      end
 
-          add_card_holder(post[:paymentMethod][:Card], payment, options)
+      def build_payment_method(payment)
+        case payment
+        when NetworkTokenizationCreditCard
+          {
+            source: 'network-token',
+            id: payment.brand,
+            NetworkToken: {
+              Number: payment.number,
+              ExpMonth: (format(payment.month, :two_digits) if payment.month),
+              ExpYear: (format(payment.year, :two_digits) if payment.year),
+              Cryptogram: payment.payment_cryptogram
+            }
+          }
+        when CreditCard
+          {
+            type: 'card',
+            Card: {
+              Number: payment.number,
+              ExpMonth: (format(payment.month, :two_digits) if payment.month),
+              ExpYear: (format(payment.year, :two_digits) if payment.year),
+              Cvc: payment.verification_value
+            }
+          }
         end
       end
 

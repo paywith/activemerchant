@@ -33,6 +33,7 @@ module ActiveMerchant #:nodoc:
         post = {}
         post[:capture] = false
         build_auth_or_purchase(post, amount, payment_method, options)
+
         options[:incremental_authorization] ? commit(:incremental_authorize, post, options, options[:incremental_authorization]) : commit(:authorize, post, options)
       end
 
@@ -78,6 +79,10 @@ module ActiveMerchant #:nodoc:
 
       def verify(credit_card, options = {})
         authorize(0, credit_card, options)
+      end
+
+      def inquire(authorization, options = {})
+        verify_payment(authorization, {})
       end
 
       def verify_payment(authorization, options = {})
@@ -144,6 +149,8 @@ module ActiveMerchant #:nodoc:
         add_recipient_data(post, options)
         add_processing_data(post, options)
         add_payment_sender_data(post, options)
+        add_risk_data(post, options)
+        truncate_amex_reference_id(post, options, payment_method)
       end
 
       def add_invoice(post, money, options)
@@ -157,6 +164,10 @@ module ActiveMerchant #:nodoc:
         end
         post[:metadata] = {}
         post[:metadata][:udf5] = application_id || 'ActiveMerchant'
+      end
+
+      def truncate_amex_reference_id(post, options, payment_method)
+        post[:reference] = truncate(options[:order_id], 30) if payment_method.respond_to?(:brand) && payment_method.brand == 'american_express'
       end
 
       def add_recipient_data(post, options)
@@ -189,6 +200,20 @@ module ActiveMerchant #:nodoc:
         return unless options[:processing].is_a?(Hash)
 
         post[:processing] = options[:processing]
+      end
+
+      def add_risk_data(post, options)
+        return unless options[:risk].is_a?(Hash)
+
+        risk = options[:risk]
+        post[:risk] = {} unless risk.empty?
+
+        if risk[:enabled].to_s == 'true'
+          post[:risk][:enabled] = true
+          post[:risk][:device_session_id] = risk[:device_session_id] if risk[:device_session_id]
+        elsif risk[:enabled].to_s == 'false'
+          post[:risk][:enabled] = false
+        end
       end
 
       def add_payment_sender_data(post, options)
@@ -344,6 +369,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def merchant_initiated_override(post, options)
+        post[:payment_type] ||= 'Regular'
         post[:merchant_initiated] = true
         post[:source][:stored] = true
         post[:previous_payment_id] = options[:merchant_initiated_transaction_id]
@@ -362,7 +388,7 @@ module ActiveMerchant #:nodoc:
       def add_stored_credential_options(post, options = {})
         return unless options[:stored_credential]
 
-        post[:payment_type] = 'Recurring' if %w(recurring installment).include? options[:stored_credential][:reason_type]
+        post[:payment_type] = options[:stored_credential][:reason_type]&.capitalize
 
         if options[:merchant_initiated_transaction_id]
           merchant_initiated_override(post, options)
@@ -640,12 +666,7 @@ module ActiveMerchant #:nodoc:
         elsif response['error_type']
           response['error_type'] + ': ' + response['error_codes'].first
         else
-          response_summary = if options[:threeds_response_message]
-                               response['response_summary'] || response.dig('actions', 0, 'response_summary')
-                             else
-                               response['response_summary']
-                             end
-
+          response_summary = response['response_summary'] || response.dig('actions', 0, 'response_summary')
           response_summary || response['response_code'] || response['status'] || response['message'] || 'Unable to read error message'
         end
       end
@@ -675,11 +696,7 @@ module ActiveMerchant #:nodoc:
         elsif response['error_type']
           response['error_type']
         else
-          response_code = if options[:threeds_response_message]
-                            response['response_code'] || response.dig('actions', 0, 'response_code')
-                          else
-                            response['response_code']
-                          end
+          response_code = response['response_code'] || response.dig('actions', 0, 'response_code')
 
           STANDARD_ERROR_CODE_MAPPING[response_code]
         end

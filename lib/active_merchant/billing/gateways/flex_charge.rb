@@ -17,10 +17,14 @@ module ActiveMerchant #:nodoc:
         sync: 'outcome',
         refund: 'orders/%s/refund',
         store: 'tokenize',
-        inquire: 'outcome'
+        inquire: 'orders/%s',
+        capture: 'capture',
+        void: 'orders/%s/cancel'
       }
 
-      SUCCESS_MESSAGES = %w(APPROVED CHALLENGE SUBMITTED SUCCESS PROCESSING).freeze
+      SUCCESS_MESSAGES = %w(APPROVED CHALLENGE SUBMITTED SUCCESS PROCESSING CAPTUREREQUIRED).freeze
+
+      NO_ERROR_KEYS = %w(TraceId access_token token_expires).freeze
 
       def initialize(options = {})
         requires!(options, :app_key, :app_secret, :site_id, :mid)
@@ -28,27 +32,52 @@ module ActiveMerchant #:nodoc:
       end
 
       def purchase(money, credit_card, options = {})
-        post = {}
-        address = options[:billing_address] || options[:address]
+        post = { transactionType: options.fetch(:transactionType, 'Purchase') }
+
         add_merchant_data(post, options)
         add_base_data(post, options)
         add_invoice(post, money, credit_card, options)
         add_mit_data(post, options)
-        add_payment_method(post, credit_card, address, options)
-        add_address(post, credit_card, address)
+        add_payment_method(post, credit_card, address(options), options)
+        add_address(post, credit_card, address(options), :billingInformation)
+        add_address(post, credit_card, options[:shipping_address], :shippingInformation)
         add_customer_data(post, options)
         add_three_ds(post, options)
+        add_metadata(post, options)
 
         commit(:purchase, post)
       end
 
+      def authorize(money, credit_card, options = {})
+        options[:transactionType] = 'Authorization'
+        purchase(money, credit_card, options)
+      end
+
+      def capture(money, authorization, options = {})
+        order_id, currency = authorization.split('#')
+        post = {
+          idempotencyKey: options[:idempotency_key] || SecureRandom.uuid,
+          orderId: order_id,
+          amount: money,
+          currency: currency
+        }
+
+        commit(:capture, post, authorization)
+      end
+
       def refund(money, authorization, options = {})
-        commit(:refund, { amountToRefund: (money.to_f / 100).round(2) }, authorization)
+        order_id, _currency = authorization.split('#')
+        self.money_format = :dollars
+        commit(:refund, { amountToRefund: localized_amount(money, 2).to_f }, order_id)
+      end
+
+      def void(authorization, options = {})
+        order_id, _currency = authorization.split('#')
+        commit(:void, {}, order_id)
       end
 
       def store(credit_card, options = {})
-        address = options[:billing_address] || options[:address] || {}
-        first_name, last_name = address_names(address[:name], credit_card)
+        first_name, last_name = names_from_address(address(options), credit_card)
 
         post = {
           payment_method: {
@@ -84,10 +113,20 @@ module ActiveMerchant #:nodoc:
       end
 
       def inquire(authorization, options = {})
-        commit(:inquire, { orderSessionKey: authorization }, authorization)
+        order_id, _currency = authorization.split('#')
+        commit(:inquire, {}, order_id, :get)
+      end
+
+      def add_metadata(post, options)
+        post[:Source] = 'Spreedly'
+        post[:ExtraData] = options[:extra_data] if options[:extra_data].present?
       end
 
       private
+
+      def address(options)
+        options[:billing_address] || options[:address] || {}
+      end
 
       def add_three_ds(post, options)
         return unless three_d_secure = options[:three_d_secure]
@@ -113,7 +152,8 @@ module ActiveMerchant #:nodoc:
       def add_base_data(post, options)
         post[:isDeclined] = cast_bool(options[:is_declined])
         post[:orderId] = options[:order_id]
-        post[:idempotencyKey] = options[:idempotency_key] || options[:order_id]
+        post[:idempotencyKey] = options[:idempotency_key] || SecureRandom.uuid
+        post[:senseKey] = options[:sense_key]
       end
 
       def add_mit_data(post, options)
@@ -128,10 +168,12 @@ module ActiveMerchant #:nodoc:
         post[:payer] = { email: options[:email] || 'NA', phone: phone_from(options) }.compact
       end
 
-      def add_address(post, payment, address)
-        first_name, last_name = address_names(address[:name], payment)
+      def add_address(post, payment, address, address_type)
+        return unless address.present?
 
-        post[:billingInformation] = {
+        first_name, last_name = names_from_address(address, payment)
+
+        post[address_type] = {
           firstName: first_name,
           lastName: last_name,
           country: address[:country],
@@ -165,27 +207,31 @@ module ActiveMerchant #:nodoc:
         payment_method = case credit_card
                          when String
                            { Token: true, cardNumber: credit_card }
-                         else
-                           {
-                             holderName: credit_card.name,
-                             cardType: 'CREDIT',
-                             cardBrand: credit_card.brand&.upcase,
-                             cardCountry: address[:country],
-                             expirationMonth: credit_card.month,
-                             expirationYear: credit_card.year,
-                             cardBinNumber: credit_card.number[0..5],
-                             cardLast4Digits: credit_card.number[-4..-1],
-                             cardNumber: credit_card.number,
-                             Token: false
-                           }
+                         when CreditCard
+                           if credit_card.number
+                             {
+                               holderName: credit_card.name,
+                               cardType: 'CREDIT',
+                               cardBrand: credit_card.brand&.upcase,
+                               cardCountry: address[:country],
+                               expirationMonth: credit_card.month,
+                               expirationYear: credit_card.year,
+                               cardBinNumber: credit_card.number[0..5],
+                               cardLast4Digits: credit_card.number[-4..-1],
+                               cardNumber: credit_card.number,
+                               Token: false
+                             }
+                           else
+                             {}
+                           end
                          end
         post[:paymentMethod] = payment_method.compact
       end
 
-      def address_names(address_name, payment_method)
-        split_names(address_name).tap do |names|
-          names[0] = payment_method&.first_name unless names[0].present?
-          names[1] = payment_method&.last_name unless names[1].present?
+      def names_from_address(address, payment_method)
+        split_names(address[:name]).tap do |names|
+          names[0] = payment_method&.first_name unless names[0].present? || payment_method.is_a?(String)
+          names[1] = payment_method&.last_name unless names[1].present? || payment_method.is_a?(String)
         end
       end
 
@@ -204,10 +250,10 @@ module ActiveMerchant #:nodoc:
         @options[:access_token] = response[:accessToken]
         @options[:token_expires] = response[:expires]
         @options[:new_credentials] = true
-
+        success = response[:accessToken].present?
         Response.new(
-          response[:accessToken].present?,
-          message_from(response),
+          success,
+          message_from(response, success),
           response,
           test: test?,
           error_code: response[:statusCode]
@@ -227,6 +273,8 @@ module ActiveMerchant #:nodoc:
       end
 
       def parse(body)
+        body = '{}' if body.blank?
+
         JSON.parse(body).with_indifferent_access
       rescue JSON::ParserError
         {
@@ -235,27 +283,27 @@ module ActiveMerchant #:nodoc:
         }.with_indifferent_access
       end
 
-      def commit(action, post, authorization = nil)
+      def commit(action, post, authorization = nil, method = :post)
         MultiResponse.run do |r|
           r.process { fetch_access_token } unless access_token_valid?
           r.process do
-            api_request(action, post, authorization).tap do |response|
+            api_request(action, post, authorization, method).tap do |response|
               response.params.merge!(@options.slice(:access_token, :token_expires)) if @options[:new_credentials]
             end
           end
         end
       end
 
-      def api_request(action, post, authorization = nil)
-        response = parse ssl_post(url(action, authorization), post.to_json, headers)
-
+      def api_request(action, post, authorization = nil, method = :post)
+        response = parse ssl_request(method, url(action, authorization), post.to_json, headers)
+        success = success_from(action, response)
         Response.new(
-          success_from(response),
-          message_from(response),
+          success,
+          message_from(response, success),
           response,
-          authorization: authorization_from(action, response),
+          authorization: authorization_from(action, response, post),
           test: test?,
-          error_code: error_code_from(response)
+          error_code: error_code_from(success, response)
         )
       rescue ResponseError => e
         response = parse(e.response.body)
@@ -264,28 +312,43 @@ module ActiveMerchant #:nodoc:
           @options[:access_token] = ''
           @options[:new_credentials] = true
         end
-        Response.new(false, message_from(response), response, test: test?)
+        Response.new(false, message_from(response, false), response, test: test?)
       end
 
-      def success_from(response)
-        response[:success] && SUCCESS_MESSAGES.include?(response[:status]) ||
-          response.dig(:transaction, :payment_method, :token).present?
+      def success_from(action, response)
+        case action
+        when :store then response.dig(:transaction, :payment_method, :token).present?
+        when :inquire then response[:id].present? && SUCCESS_MESSAGES.include?(response[:statusName])
+        when :void then response.empty?
+        else
+          response[:success] && SUCCESS_MESSAGES.include?(response[:status])
+        end
       end
 
-      def message_from(response)
-        response[:title] || response[:responseMessage] || response[:status]
+      def message_from(response, success_status)
+        return extract_error(response) unless success_status || response['TraceId'].nil?
+
+        response[:title] || response[:responseMessage] || response[:statusName] || response[:status]
       end
 
-      def authorization_from(action, response)
-        action == :store ? response.dig(:transaction, :payment_method, :token) : response[:orderSessionKey]
+      def authorization_from(action, response, options)
+        if action == :store
+          response.dig(:transaction, :payment_method, :token)
+        elsif success_from(action, response)
+          [response[:orderId], options[:currency] || default_currency].compact.join('#')
+        end
       end
 
-      def error_code_from(response)
-        response[:status] unless success_from(response)
+      def error_code_from(success, response)
+        (response[:statusName] || response[:status]) unless success
       end
 
       def cast_bool(value)
         ![false, 0, '', '0', 'f', 'F', 'false', 'FALSE'].include?(value)
+      end
+
+      def extract_error(response)
+        response.except(*NO_ERROR_KEYS).to_json
       end
     end
   end

@@ -4,7 +4,7 @@ class RemoteDLocalTest < Test::Unit::TestCase
   def setup
     @gateway = DLocalGateway.new(fixtures(:d_local))
 
-    @amount = 200
+    @amount = 1000
     @credit_card = credit_card('4111111111111111')
     @credit_card_naranja = credit_card('5895627823453005')
     @cabal_credit_card = credit_card('5896 5700 0000 0004')
@@ -46,6 +46,12 @@ class RemoteDLocalTest < Test::Unit::TestCase
 
   def test_successful_purchase
     response = @gateway.purchase(@amount, @credit_card, @options)
+    assert_success response
+    assert_match 'The payment was paid', response.message
+  end
+
+  def test_successful_purchase_with_ip_and_phone
+    response = @gateway.purchase(@amount, @credit_card, @options.merge(ip: '127.0.0.1'))
     assert_success response
     assert_match 'The payment was paid', response.message
   end

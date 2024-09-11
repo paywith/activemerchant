@@ -24,13 +24,42 @@ class RemotePlexoTest < Test::Unit::TestCase
       },
       identification_type: '1',
       identification_value: '123456',
-      billing_address: address
+      billing_address: address,
+      invoice_number: '12345abcde'
     }
 
     @cancel_options = {
       description: 'Test desc',
       reason: 'requested by client'
     }
+
+    @network_token_credit_card = ActiveMerchant::Billing::NetworkTokenizationCreditCard.new({
+      first_name: 'Santiago', last_name: 'Navatta',
+        brand: 'Mastercard',
+        payment_cryptogram: 'UnVBR0RlYm42S2UzYWJKeWJBdWQ=',
+        number: '5555555555554444',
+        source: :network_token,
+        month: '12',
+        year: Time.now.year
+    })
+
+    @decrypted_network_token = NetworkTokenizationCreditCard.new(
+      {
+        first_name: 'Joe', last_name: 'Doe',
+        brand: 'visa',
+        payment_cryptogram: 'UnVBR0RlYm42S2UzYWJKeWJBdWQ=',
+        number: '5555555555554444',
+        source: :network_token,
+        month: '12',
+        year: Time.now.year
+      }
+    )
+  end
+
+  def test_successful_purchase_with_network_token
+    response = @gateway.purchase(@amount, @decrypted_network_token, @options.merge({ invoice_number: '12345abcde' }))
+    assert_success response
+    assert_equal 'You have been mocked.', response.message
   end
 
   def test_successful_purchase
@@ -152,6 +181,9 @@ class RemotePlexoTest < Test::Unit::TestCase
     assert_failure response
     assert_equal 'The selected payment state is not valid.', response.message
   end
+
+  # for verify tests: sometimes those fails but re-running after
+  # few seconds they can works
 
   def test_successful_verify
     response = @gateway.verify(@credit_card, @options)
