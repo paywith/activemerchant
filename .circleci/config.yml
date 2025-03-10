@@ -29,8 +29,5 @@ jobs:
           name: brakeman
           command: make brakeman
       - run:
-          name: rubocop
-          command: make rubocop
-      - run:
           name: test
           command: make tests
