@@ -640,17 +640,20 @@ module ActiveMerchant #:nodoc:
         end
 
         transaction = result.transaction
-        if transaction.vault_customer
-          vault_customer = {
-          }
-          vault_customer['credit_cards'] = transaction.vault_customer.credit_cards.map do |cc|
-            {
-              'bin' => cc.bin
-            }
-          end
-        else
-          vault_customer = nil
-        end
+        vault_customer = nil
+
+        # reaching vault_customer, ends up with calling `GET customers` endpoint
+        # This block would call it twice, commenting the block to improve the performance
+        #
+        # if transaction.vault_customer
+        #   vault_customer = {
+        #   }
+        #   vault_customer['credit_cards'] = transaction.vault_customer.credit_cards.map do |cc|
+        #     {
+        #       'bin' => cc.bin
+        #     }
+        #   end
+        # end
 
         credit_card_details = credit_card_details(transaction)
 
