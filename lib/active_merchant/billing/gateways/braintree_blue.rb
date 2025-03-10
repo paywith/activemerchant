@@ -642,8 +642,9 @@ module ActiveMerchant #:nodoc:
         transaction = result.transaction
         vault_customer = nil
 
-        # reaching vault_customer, ends up with calling `GET customers` endpoint
-        # This block would call it twice, commenting the block to improve the performance
+        # reaching transaction.vault_customer, ends up with calling `GET customers` endpoint
+        # This block would call it twice since it does not cache the response.
+        # commenting the block to improve the performance
         #
         # if transaction.vault_customer
         #   vault_customer = {
